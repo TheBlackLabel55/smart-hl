@@ -4,13 +4,15 @@
  * Hyperliquid WebSocket Hook
  * Re-render Safe Implementation
  * 
- * FIXED: Proper subscription format for Hyperliquid API
+ * CRITICAL: This hook ALWAYS connects on mount - no dependencies on cache
+ * Hardcoded WS URL to rule out env var issues
  */
 
 import { useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import type { HyperliquidTrade } from '@/types';
 
+// HARDCODED - No env vars to prevent production issues
 const WS_URL = 'wss://api.hyperliquid.xyz/ws';
 const RECONNECT_DELAY_BASE = 3000;
 const HEARTBEAT_INTERVAL = 30000;
@@ -18,17 +20,9 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-interface UseHyperliquidWSOptions {
-  coins?: string[];
-  autoConnect?: boolean;
-}
-
 export function useHyperliquidWS(
-  onTrade: (trade: HyperliquidTrade) => void,
-  options: UseHyperliquidWSOptions = {}
+  onTrade?: (trade: HyperliquidTrade) => void
 ) {
-  const { coins = [], autoConnect = true } = options;
-
   // ============================================
   // REFS: Mutable values that don't trigger re-renders
   // ============================================
@@ -37,14 +31,13 @@ export function useHyperliquidWS(
   const reconnectAttemptsRef = useRef(0);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
   
   // Store the callback in a ref so we always have the latest version
   const onTradeRef = useRef(onTrade);
-  const coinsRef = useRef(coins);
 
-  // Keep refs updated with latest values
+  // Keep ref updated with latest callback
   onTradeRef.current = onTrade;
-  coinsRef.current = coins;
 
   // ============================================
   // GET STORE ACTIONS ONCE (stable references)
@@ -55,12 +48,18 @@ export function useHyperliquidWS(
   const incrementMessageCount = useStore((s) => s.incrementMessageCount);
 
   // ============================================
-  // MAIN EFFECT: Runs ONCE on mount
+  // MAIN EFFECT: Runs ONCE on mount - ALWAYS CONNECTS
   // ============================================
   useEffect(() => {
+    mountedRef.current = true;
+    
+    console.log('[HL] 🚀 Hook mounted - initiating connection...');
+
     // Guard function: Only update store if status actually changed
     const updateStatus = (newStatus: ConnectionStatus) => {
+      if (!mountedRef.current) return;
       if (statusRef.current !== newStatus) {
+        console.log(`[HL] Status: ${statusRef.current} → ${newStatus}`);
         statusRef.current = newStatus;
         setConnectionStatus(newStatus);
       }
@@ -84,14 +83,18 @@ export function useHyperliquidWS(
     };
 
     const connect = () => {
+      if (!mountedRef.current) return;
+      
       // Guard: Don't connect if already open or connecting
       if (
         wsRef.current?.readyState === WebSocket.OPEN ||
         wsRef.current?.readyState === WebSocket.CONNECTING
       ) {
+        console.log('[HL] Already connected or connecting, skipping...');
         return;
       }
 
+      console.log('[HL] 📡 Creating WebSocket connection to:', WS_URL);
       updateStatus('connecting');
       setErrorMessage(null);
 
@@ -100,29 +103,30 @@ export function useHyperliquidWS(
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('[HL] ✅ Socket Open - Connected to Hyperliquid');
+          if (!mountedRef.current) return;
+          
+          console.log('[HL] ✅ Socket OPEN - Connected to Hyperliquid!');
           updateStatus('connected');
           reconnectAttemptsRef.current = 0;
 
           // CRITICAL: Send subscription IMMEDIATELY
-          // Hyperliquid uses "allMids" for all trades or specific coin
-          const subscribeMsg = {
+          const btcSub = {
             method: 'subscribe',
-            subscription: { type: 'trades', coin: 'BTC' } // Start with BTC
+            subscription: { type: 'trades', coin: 'BTC' }
           };
           
-          ws.send(JSON.stringify(subscribeMsg));
-          console.log('[HL] 📡 Subscribed to BTC trades:', subscribeMsg);
+          ws.send(JSON.stringify(btcSub));
+          console.log('[HL] 📡 Sent BTC subscription:', JSON.stringify(btcSub));
 
           // Also subscribe to ETH for more data
           setTimeout(() => {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === WebSocket.OPEN && mountedRef.current) {
               const ethSub = {
                 method: 'subscribe',
                 subscription: { type: 'trades', coin: 'ETH' }
               };
               ws.send(JSON.stringify(ethSub));
-              console.log('[HL] 📡 Subscribed to ETH trades');
+              console.log('[HL] 📡 Sent ETH subscription');
             }
           }, 500);
 
@@ -131,22 +135,26 @@ export function useHyperliquidWS(
         };
 
         ws.onmessage = (event) => {
+          if (!mountedRef.current) return;
+          
           try {
             const message = JSON.parse(event.data);
             
-            // Debug: Log all incoming messages
-            console.log('[HL] 📨 Message received:', message.channel || 'unknown', message);
+            // Log first few messages for debugging
+            if (message.channel !== 'pong') {
+              console.log('[HL] 📨 Message:', message.channel, message);
+            }
 
             // Ignore pong
             if (message.channel === 'pong') return;
 
             // Handle subscription confirmation
             if (message.channel === 'subscriptionResponse') {
-              console.log('[HL] ✅ Subscription confirmed:', message);
+              console.log('[HL] ✅ Subscription confirmed!');
               return;
             }
 
-            // Handle trade data - Hyperliquid uses 'trades' channel
+            // Handle trade data
             if (message.channel === 'trades' && message.data) {
               updateLastMessageTime();
               incrementMessageCount();
@@ -155,32 +163,34 @@ export function useHyperliquidWS(
                 ? message.data
                 : [message.data];
 
-              console.log(`[HL] 📊 Received ${trades.length} trades`);
+              console.log(`[HL] 📊 Got ${trades.length} trade(s)`);
 
-              for (const trade of trades) {
-                // Filter by coin if specified (use ref for latest value)
-                if (coinsRef.current.length > 0 && !coinsRef.current.includes(trade.coin)) {
-                  continue;
+              // Call the callback if provided
+              if (onTradeRef.current) {
+                for (const trade of trades) {
+                  onTradeRef.current(trade);
                 }
-                // Call the callback via ref (always latest)
-                onTradeRef.current(trade);
               }
             }
           } catch (err) {
-            console.error('[HL] ❌ Error parsing message:', err);
+            console.error('[HL] ❌ Parse error:', err);
           }
         };
 
         ws.onerror = (err) => {
-          console.error('[HL] ❌ WebSocket error:', err);
-          updateStatus('error');
-          setErrorMessage('WebSocket connection error');
+          console.error('[HL] ❌ WebSocket ERROR:', err);
+          if (mountedRef.current) {
+            updateStatus('error');
+            setErrorMessage('WebSocket connection error');
+          }
         };
 
         ws.onclose = (event) => {
-          console.log(`[HL] 🔌 Disconnected: ${event.code} - ${event.reason}`);
+          console.log(`[HL] 🔌 Socket CLOSED: code=${event.code}, reason=${event.reason}`);
           clearTimers();
           wsRef.current = null;
+
+          if (!mountedRef.current) return;
 
           // Clean close = don't reconnect
           if (event.code === 1000) {
@@ -204,44 +214,36 @@ export function useHyperliquidWS(
         };
       } catch (err) {
         console.error('[HL] ❌ Failed to create WebSocket:', err);
-        updateStatus('error');
-        setErrorMessage('Failed to connect to Hyperliquid');
+        if (mountedRef.current) {
+          updateStatus('error');
+          setErrorMessage('Failed to connect to Hyperliquid');
+        }
       }
     };
 
     // ============================================
-    // INIT: Connect on mount if autoConnect is true
+    // INIT: ALWAYS connect immediately on mount
     // ============================================
-    if (autoConnect) {
-      console.log('[HL] 🚀 Auto-connecting to Hyperliquid...');
-      connect();
-    }
+    connect();
 
     // ============================================
     // CLEANUP: Close WS on unmount
     // ============================================
     return () => {
-      console.log('[HL] 🧹 Cleaning up WebSocket connection');
+      console.log('[HL] 🧹 Unmounting - cleaning up...');
+      mountedRef.current = false;
       clearTimers();
       if (wsRef.current) {
         wsRef.current.close(1000, 'Component unmounted');
         wsRef.current = null;
       }
-      statusRef.current = 'disconnected';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // <-- CRITICAL: Empty array = run ONCE on mount
+  }, []); // <-- EMPTY: Run ONCE on mount, no conditions
 
   // ============================================
-  // MANUAL CONTROLS (optional)
+  // MANUAL CONTROLS
   // ============================================
-  const manualConnect = () => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Manual reconnect');
-    }
-  };
-
   const manualDisconnect = () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -264,7 +266,6 @@ export function useHyperliquidWS(
   };
 
   return {
-    connect: manualConnect,
     disconnect: manualDisconnect,
   };
 }

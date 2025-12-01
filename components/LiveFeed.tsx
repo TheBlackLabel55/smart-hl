@@ -4,11 +4,7 @@
  * LiveFeed Component
  * Main container for the real-time trade stream with filtering and virtualization
  * 
- * UI States:
- * 1. LOADING - Loading cache
- * 2. CONNECTING - WebSocket connecting
- * 3. SCANNING - Connected but no trades yet
- * 4. ACTIVE - Trades flowing
+ * FIXED: WebSocket no longer depends on cache loading
  */
 
 import { useCallback, useRef } from 'react';
@@ -21,7 +17,7 @@ import { useProcessor } from '@/hooks/useProcessor';
 import { useSmartMoneyLoader } from '@/hooks/useSmartMoneyLoader';
 import { cn, formatUSD } from '@/lib/utils';
 
-const ROW_HEIGHT = 56; // Height of each TradeRow in pixels
+const ROW_HEIGHT = 56;
 
 export function LiveFeed() {
   const trades = useFilteredTrades();
@@ -29,16 +25,14 @@ export function LiveFeed() {
   const stats = useStats();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Load Smart Money cache
+  // Load Smart Money cache (runs independently)
   const { isLoading: isLoadingCache, walletCount, error: cacheError } = useSmartMoneyLoader();
 
   // Initialize processor
   const { handleTrade } = useProcessor();
 
-  // Connect to Hyperliquid WebSocket (only after cache is loaded)
-  useHyperliquidWS(handleTrade, {
-    autoConnect: !isLoadingCache,
-  });
+  // ALWAYS connect to WebSocket - NO CONDITIONS
+  useHyperliquidWS(handleTrade);
 
   // Derive state
   const isConnected = connectionStatus === 'connected';
@@ -66,29 +60,7 @@ export function LiveFeed() {
 
   // Determine which UI state to show
   const renderContent = () => {
-    // STATE 1: Loading cache
-    if (isLoadingCache) {
-      return (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center h-full text-center p-8"
-        >
-          <div className="relative w-16 h-16 mb-4">
-            <div className="absolute inset-0 border-2 border-neon-green/30 rounded-full" />
-            <div className="absolute inset-0 border-2 border-transparent border-t-neon-green rounded-full animate-spin" />
-          </div>
-          <h3 className="font-display text-xl font-semibold text-gray-300 mb-2">
-            Initializing Neural Link
-          </h3>
-          <p className="text-gray-500 font-mono text-sm">
-            Loading Smart Money database...
-          </p>
-        </motion.div>
-      );
-    }
-
-    // STATE 2: WebSocket connecting
+    // STATE 1: WebSocket connecting (priority over cache loading)
     if (isConnecting) {
       return (
         <motion.div
@@ -110,7 +82,7 @@ export function LiveFeed() {
       );
     }
 
-    // STATE 3: Error state
+    // STATE 2: Error state
     if (hasError) {
       return (
         <motion.div
@@ -129,7 +101,7 @@ export function LiveFeed() {
       );
     }
 
-    // STATE 4: Connected but no trades yet
+    // STATE 3: Connected but no trades yet
     if (isConnected && !hasTrades) {
       return (
         <motion.div
@@ -158,7 +130,26 @@ export function LiveFeed() {
             Scanning for Smart Money & Whale trades...
           </p>
           <p className="text-gray-600 font-mono text-xs mt-2">
-            Trades will appear here when detected
+            {isLoadingCache ? 'Loading wallet labels...' : 'Trades will appear here when detected'}
+          </p>
+        </motion.div>
+      );
+    }
+
+    // STATE 4: Disconnected (shouldn't happen normally)
+    if (connectionStatus === 'disconnected' && !hasTrades) {
+      return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center h-full text-center p-8"
+        >
+          <div className="text-6xl mb-4">🔌</div>
+          <h3 className="font-display text-xl font-semibold text-gray-400 mb-2">
+            Disconnected
+          </h3>
+          <p className="text-gray-500 font-mono text-sm max-w-md">
+            WebSocket not connected. Check console for errors.
           </p>
         </motion.div>
       );
@@ -214,7 +205,7 @@ export function LiveFeed() {
           {isLoadingCache ? (
             <span className="text-xs font-mono text-yellow-500">Loading cache...</span>
           ) : cacheError ? (
-            <span className="text-xs font-mono text-red-500">Cache error</span>
+            <span className="text-xs font-mono text-red-500">Cache error (continuing)</span>
           ) : (
             <span className="text-xs font-mono text-gray-500">
               {walletCount} Smart Wallets
@@ -229,6 +220,11 @@ export function LiveFeed() {
           <StatBadge label="Whales" value={stats.whaleTrades.toString()} color="gold" />
           <StatBadge label="Volume" value={formatUSD(stats.totalVolume)} />
         </div>
+      </div>
+
+      {/* DEBUG STATUS LINE - Remove after fixing */}
+      <div className="text-[10px] font-mono text-neon-cyan opacity-70 text-center py-1 bg-base-900/30 border-b border-gunmetal-700">
+        STATUS: {connectionStatus} | TRADES: {trades.length} | CACHE: {isLoadingCache ? 'Loading' : walletCount + ' wallets'} | ERROR: {cacheError || 'none'}
       </div>
 
       {/* Column Headers */}
