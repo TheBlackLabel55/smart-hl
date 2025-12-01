@@ -4,10 +4,7 @@
  * Hyperliquid WebSocket Hook
  * Re-render Safe Implementation
  * 
- * Key fixes:
- * 1. Ref-based guards to prevent redundant store updates
- * 2. Empty dependency array on main useEffect
- * 3. Refs for mutable values accessed inside effect
+ * FIXED: Proper subscription format for Hyperliquid API
  */
 
 import { useEffect, useRef } from 'react';
@@ -86,16 +83,6 @@ export function useHyperliquidWS(
       }
     };
 
-    const subscribe = (ws: WebSocket) => {
-      if (ws.readyState !== WebSocket.OPEN) return;
-
-      ws.send(JSON.stringify({
-        method: 'subscribe',
-        subscription: { type: 'trades' },
-      }));
-      console.log('[WS] Subscribed to trades channel');
-    };
-
     const connect = () => {
       // Guard: Don't connect if already open or connecting
       if (
@@ -113,12 +100,31 @@ export function useHyperliquidWS(
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('[WS] Connected to Hyperliquid');
+          console.log('[HL] ✅ Socket Open - Connected to Hyperliquid');
           updateStatus('connected');
           reconnectAttemptsRef.current = 0;
 
-          // Subscribe to trades
-          subscribe(ws);
+          // CRITICAL: Send subscription IMMEDIATELY
+          // Hyperliquid uses "allMids" for all trades or specific coin
+          const subscribeMsg = {
+            method: 'subscribe',
+            subscription: { type: 'trades', coin: 'BTC' } // Start with BTC
+          };
+          
+          ws.send(JSON.stringify(subscribeMsg));
+          console.log('[HL] 📡 Subscribed to BTC trades:', subscribeMsg);
+
+          // Also subscribe to ETH for more data
+          setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              const ethSub = {
+                method: 'subscribe',
+                subscription: { type: 'trades', coin: 'ETH' }
+              };
+              ws.send(JSON.stringify(ethSub));
+              console.log('[HL] 📡 Subscribed to ETH trades');
+            }
+          }, 500);
 
           // Start heartbeat
           heartbeatRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
@@ -127,11 +133,20 @@ export function useHyperliquidWS(
         ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
+            
+            // Debug: Log all incoming messages
+            console.log('[HL] 📨 Message received:', message.channel || 'unknown', message);
 
             // Ignore pong
             if (message.channel === 'pong') return;
 
-            // Handle trade data
+            // Handle subscription confirmation
+            if (message.channel === 'subscriptionResponse') {
+              console.log('[HL] ✅ Subscription confirmed:', message);
+              return;
+            }
+
+            // Handle trade data - Hyperliquid uses 'trades' channel
             if (message.channel === 'trades' && message.data) {
               updateLastMessageTime();
               incrementMessageCount();
@@ -139,6 +154,8 @@ export function useHyperliquidWS(
               const trades: HyperliquidTrade[] = Array.isArray(message.data)
                 ? message.data
                 : [message.data];
+
+              console.log(`[HL] 📊 Received ${trades.length} trades`);
 
               for (const trade of trades) {
                 // Filter by coin if specified (use ref for latest value)
@@ -150,18 +167,18 @@ export function useHyperliquidWS(
               }
             }
           } catch (err) {
-            console.error('[WS] Error parsing message:', err);
+            console.error('[HL] ❌ Error parsing message:', err);
           }
         };
 
         ws.onerror = (err) => {
-          console.error('[WS] WebSocket error:', err);
+          console.error('[HL] ❌ WebSocket error:', err);
           updateStatus('error');
           setErrorMessage('WebSocket connection error');
         };
 
         ws.onclose = (event) => {
-          console.log(`[WS] Disconnected: ${event.code} - ${event.reason}`);
+          console.log(`[HL] 🔌 Disconnected: ${event.code} - ${event.reason}`);
           clearTimers();
           wsRef.current = null;
 
@@ -176,7 +193,7 @@ export function useHyperliquidWS(
             reconnectAttemptsRef.current++;
             const delay = RECONNECT_DELAY_BASE * reconnectAttemptsRef.current;
 
-            console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+            console.log(`[HL] 🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
             setErrorMessage(`Reconnecting... (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
 
             reconnectTimeoutRef.current = setTimeout(connect, delay);
@@ -186,7 +203,7 @@ export function useHyperliquidWS(
           }
         };
       } catch (err) {
-        console.error('[WS] Failed to create WebSocket:', err);
+        console.error('[HL] ❌ Failed to create WebSocket:', err);
         updateStatus('error');
         setErrorMessage('Failed to connect to Hyperliquid');
       }
@@ -196,6 +213,7 @@ export function useHyperliquidWS(
     // INIT: Connect on mount if autoConnect is true
     // ============================================
     if (autoConnect) {
+      console.log('[HL] 🚀 Auto-connecting to Hyperliquid...');
       connect();
     }
 
@@ -203,6 +221,7 @@ export function useHyperliquidWS(
     // CLEANUP: Close WS on unmount
     // ============================================
     return () => {
+      console.log('[HL] 🧹 Cleaning up WebSocket connection');
       clearTimers();
       if (wsRef.current) {
         wsRef.current.close(1000, 'Component unmounted');
@@ -217,11 +236,7 @@ export function useHyperliquidWS(
   // MANUAL CONTROLS (optional)
   // ============================================
   const manualConnect = () => {
-    // This is a simplified version for manual triggering
-    // The main logic is inside the effect
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    
-    // Force a remount by closing existing
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual reconnect');
     }
