@@ -30,9 +30,12 @@ export function LiveFeed() {
   const { handleTrade } = useProcessor();
 
   // Connect to Hyperliquid WebSocket
-  const { isConnected } = useHyperliquidWS(handleTrade, {
+  useHyperliquidWS(handleTrade, {
     autoConnect: !isLoadingCache, // Wait for cache before connecting
   });
+
+  // Derive isConnected from store status
+  const isConnected = connectionStatus === 'connected';
 
   // Virtual list for performance
   const virtualizer = useVirtualizer({
