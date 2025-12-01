@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/refresh-smart-money",
+      "schedule": "0 */12 * * *"
+    }
+  ]
+}
+
