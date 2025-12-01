@@ -81,7 +81,7 @@ export default function DashboardPage() {
             </a>
             <span className="text-gunmetal-600">|</span>
             <span className="text-gray-600">
-              Cache refresh: Every 12h
+              Cache refresh: Every 24h
             </span>
           </div>
         </div>

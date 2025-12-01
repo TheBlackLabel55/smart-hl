@@ -1,8 +1,8 @@
 /**
  * Cron Job: Refresh Smart Money Cache
- * Runs every 12 hours via Vercel Cron
+ * Runs every 24 hours via Vercel Cron (daily at midnight UTC)
  * 
- * Vercel Cron Schedule: 0 */12 * * *
+ * Vercel Cron Schedule: 0 0 * * *
  */
 
 import { NextResponse } from 'next/server';

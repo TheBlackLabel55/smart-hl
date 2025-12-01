@@ -9,7 +9,7 @@ import type { SmartMoneyCache } from './nansen';
 
 const CACHE_KEY = 'smart-money-cache';
 const CACHE_TIMESTAMP_KEY = 'smart-money-cache-timestamp';
-const CACHE_TTL_SECONDS = 60 * 60 * 13; // 13 hours (buffer for 12h cron)
+const CACHE_TTL_SECONDS = 60 * 60 * 25; // 25 hours (buffer for 24h cron)
 
 export interface CacheMetadata {
   lastUpdated: number;
@@ -110,7 +110,7 @@ export async function getSmartMoneyCache(): Promise<{
 }
 
 /**
- * Check if cache is stale (older than 13 hours)
+ * Check if cache is stale (older than 25 hours)
  */
 export async function isCacheStale(): Promise<boolean> {
   try {
