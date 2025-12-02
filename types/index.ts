@@ -18,7 +18,7 @@ export interface NansenSmartMoneyItem {
   
   // --- HYPERLIQUID WS TYPES (Client Side Source) ---
   
-  // The raw payload from 'wss://api.hyperliquid.xyz/ws' -> channel: "trades"
+  // The raw payload from Hyperliquid WebSocket -> channel: "trades"
   export interface HyperliquidTrade {
     coin: string;      // e.g., "BTC", "ETH"
     side: "A" | "B";   // "A" = Ask (Sell), "B" = Bid (Buy) - *Need to map this to Long/Short*

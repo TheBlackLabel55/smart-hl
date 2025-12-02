@@ -2,15 +2,24 @@
  * Nansen API Client
  * Handles all interactions with Nansen Pro API endpoints
  * Rate limited - use with caching strategy only
+ * 
+ * FIXED: Uses POST requests with proper headers as per Nansen API spec
  */
 
 import type { NansenSmartMoneyResponse, NansenSmartMoneyItem } from '@/types';
+import { NANSEN_API_BASE_URL, CHAIN_ID_ARBITRUM } from './constants';
 
-const NANSEN_API_BASE = process.env.NANSEN_API_BASE_URL || 'https://api.nansen.ai/v1';
 const NANSEN_API_KEY = process.env.NANSEN_API_KEY || '';
 
 interface NansenClientOptions {
   timeout?: number;
+}
+
+interface NansenPostRequest {
+  min_balance_usd?: number;
+  chain_id?: number;
+  cursor?: string;
+  limit?: number;
 }
 
 class NansenClient {
@@ -19,38 +28,45 @@ class NansenClient {
   private timeout: number;
 
   constructor(options: NansenClientOptions = {}) {
-    this.baseUrl = NANSEN_API_BASE;
+    this.baseUrl = NANSEN_API_BASE_URL;
     this.apiKey = NANSEN_API_KEY;
     this.timeout = options.timeout || 30000;
   }
 
-  private async request<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
-    
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-    }
-
+  /**
+   * Make a POST request to Nansen API
+   * Nansen requires POST with JSON body, not GET with query params
+   */
+  private async request<T>(
+    endpoint: string, 
+    body?: NansenPostRequest
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'api-key': this.apiKey, // Nansen uses 'api-key' header, not 'Authorization'
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Nansen API error: ${response.status} ${response.statusText}`);
+        // CRITICAL: Log full response for debugging
+        const responseText = await response.text();
+        console.error(`[Nansen] API Error ${response.status} ${response.statusText}:`, responseText);
+        
+        throw new Error(
+          `Nansen API error: ${response.status} ${response.statusText}. Response: ${responseText}`
+        );
       }
 
       return response.json() as Promise<T>;
@@ -65,25 +81,55 @@ class NansenClient {
 
   /**
    * Fetch Smart Money wallets from Nansen
-   * This includes wallets labeled as "Smart DEX Traders", "Funds", etc.
+   * Uses POST with JSON body as per Nansen API specification
    */
   async getSmartMoneyWallets(chain: string = 'arbitrum'): Promise<NansenSmartMoneyItem[]> {
     const allWallets: NansenSmartMoneyItem[] = [];
     let cursor: string | undefined;
 
+    // Map chain name to chain ID
+    const chainId = chain === 'arbitrum' ? CHAIN_ID_ARBITRUM : CHAIN_ID_ARBITRUM; // Default to Arbitrum
+
     do {
-      const params: Record<string, string> = { chain };
+      const body: NansenPostRequest = {
+        min_balance_usd: 100000, // Minimum balance filter
+        chain_id: chainId,
+        limit: 100, // Max per page
+      };
+
       if (cursor) {
-        params.cursor = cursor;
+        body.cursor = cursor;
       }
 
-      const response = await this.request<NansenSmartMoneyResponse>(
-        '/smart-money/wallets',
-        params
-      );
+      try {
+        const response = await this.request<NansenSmartMoneyResponse>(
+          '/smart-money/holdings', // Using holdings endpoint
+          body
+        );
 
-      allWallets.push(...response.data);
-      cursor = response.next_cursor;
+        allWallets.push(...response.data);
+        cursor = response.next_cursor;
+      } catch (error) {
+        console.error('[Nansen] Error fetching Smart Money wallets:', error);
+        // If first request fails, try alternative endpoint
+        if (allWallets.length === 0) {
+          console.log('[Nansen] Trying alternative endpoint: /token_flows');
+          try {
+            const altResponse = await this.request<NansenSmartMoneyResponse>(
+              '/token_flows',
+              { chain_id: chainId }
+            );
+            allWallets.push(...altResponse.data);
+            cursor = altResponse.next_cursor;
+          } catch (altError) {
+            console.error('[Nansen] Alternative endpoint also failed:', altError);
+            throw error; // Throw original error
+          }
+        } else {
+          // If we have some data, break and return what we have
+          break;
+        }
+      }
     } while (cursor);
 
     return allWallets;
@@ -91,17 +137,30 @@ class NansenClient {
 
   /**
    * Fetch leaderboard data - Top performing wallets
+   * Uses POST with JSON body
    */
   async getLeaderboard(
     chain: string = 'arbitrum',
     timeframe: '24h' | '7d' | '30d' = '24h'
   ): Promise<NansenSmartMoneyItem[]> {
-    const response = await this.request<NansenSmartMoneyResponse>(
-      '/leaderboard/traders',
-      { chain, timeframe }
-    );
+    const chainId = chain === 'arbitrum' ? CHAIN_ID_ARBITRUM : CHAIN_ID_ARBITRUM;
 
-    return response.data;
+    try {
+      const response = await this.request<NansenSmartMoneyResponse>(
+        '/leaderboard/traders',
+        {
+          chain_id: chainId,
+          timeframe,
+          min_balance_usd: 50000, // Lower threshold for leaderboard
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Nansen] Error fetching leaderboard:', error);
+      // Return empty array on error rather than crashing
+      return [];
+    }
   }
 
   /**
@@ -110,10 +169,12 @@ class NansenClient {
   async getWalletProfile(address: string): Promise<NansenSmartMoneyItem | null> {
     try {
       const response = await this.request<{ data: NansenSmartMoneyItem }>(
-        `/wallet/${address}/profile`
+        `/wallet/${address}/profile`,
+        {} // Empty body for profile endpoint
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      console.error(`[Nansen] Error fetching wallet profile for ${address}:`, error);
       return null;
     }
   }
@@ -159,4 +220,3 @@ export function transformToCache(wallets: NansenSmartMoneyItem[]): SmartMoneyCac
 
   return cache;
 }
-

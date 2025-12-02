@@ -11,9 +11,10 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import type { HyperliquidTrade } from '@/types';
+import { HYPERLIQUID_WS_URL } from '@/lib/constants';
 
-// HARDCODED - No env vars to prevent production issues
-const WS_URL = 'wss://api.hyperliquid.xyz/ws';
+// Use constant from lib/constants.ts
+const WS_URL = HYPERLIQUID_WS_URL;
 const RECONNECT_DELAY_BASE = 3000;
 const HEARTBEAT_INTERVAL = 30000;
 const MAX_RECONNECT_ATTEMPTS = 5;

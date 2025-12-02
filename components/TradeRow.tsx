@@ -9,6 +9,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { UnifiedTradeLog } from '@/types';
 import { cn, formatUSD, formatPrice, truncateAddress, formatTime, isGoldenSetup } from '@/lib/utils';
+import { EXPLORER_URL } from '@/lib/constants';
 
 interface TradeRowProps {
   trade: UnifiedTradeLog;
@@ -157,8 +158,8 @@ export const TradeRow = memo(function TradeRow({ trade, index }: TradeRowProps) 
       {/* Wallet Address */}
       <div className="flex items-center justify-end">
         <a
-          href={`https://arbiscan.io/address/${trade.walletAddress}`}
-          target="_blank"
+          href={`${EXPLORER_URL}/address/${trade.walletAddress}`} 
+          target="_blank" 
           rel="noopener noreferrer"
           className={cn(
             'font-mono text-xs transition-colors duration-200',
