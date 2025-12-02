@@ -20,6 +20,7 @@ interface NansenPostRequest {
   chain_id?: number;
   cursor?: string;
   limit?: number;
+  timeframe?: '24h' | '7d' | '30d';
 }
 
 class NansenClient {
