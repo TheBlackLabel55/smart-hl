@@ -97,7 +97,7 @@ class NansenClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': apiKey as string, // STRICT: lowercase 'api-key' as per Nansen docs
+          'apiKey': apiKey as string, // STRICT: camelCase 'apiKey' as per Nansen V1 docs
         },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
@@ -129,91 +129,80 @@ class NansenClient {
    * Fetch Smart Money wallets from Hyperliquid perp trades
    * 
    * Uses the perp-trades endpoint to discover active Smart Money wallets
-   * Uses correct Nansen V1 API schema
+   * Uses correct Nansen V1 API schema with apiKey header (camelCase)
    * 
    * @returns SmartMoneyCache - Map of wallet addresses to their metadata
    */
   async fetchSmartMoneyWallets(): Promise<Record<string, SimplifiedSmartWallet>> {
-    // CRITICAL: Check API key directly from process.env (not cached instance variable)
+    // CRITICAL: Get API key directly from process.env
     const apiKey = process.env.NANSEN_API_KEY;
-    
-    // 1. Sanity Check with detailed logging
-    console.log('[Nansen Init] Loading configuration...');
-    console.log('[Nansen Check] Key exists?', !!apiKey);
-    console.log('[Nansen Check] Key length:', apiKey?.length || 0);
-    console.log('[Nansen Check] Key first 4 chars:', apiKey ? `${apiKey.substring(0, 4)}...` : 'N/A');
-    console.log('[Nansen Check] Instance key exists?', !!this.apiKey);
-    console.log('[Nansen Check] Instance key length:', this.apiKey?.length || 0);
-    
+
     if (!apiKey) {
-      console.error('[Nansen Fatal] NANSEN_API_KEY is missing from process.env');
-      console.error('[Nansen Fatal] Available env vars:', Object.keys(process.env).filter(k => k.includes('NANSEN')));
-      throw new Error('Missing NANSEN_API_KEY environment variable');
-    }
-    
-    // 2. Safe Log (without exposing full key)
-    console.log(`[Nansen Init] Key loaded successfully. Length: ${apiKey.length}`);
-    
-    // Update instance variable if it was empty
-    if (!this.apiKey) {
-      console.log('[Nansen Init] Updating instance key from process.env');
-      this.apiKey = apiKey;
+      console.error('[Nansen Fatal] Missing NANSEN_API_KEY');
+      throw new Error('Missing NANSEN_API_KEY');
     }
 
-    console.log('[Nansen] Fetching active Hyperliquid Smart Money from perp-trades...');
+    // Debug Log
+    console.log(`[Nansen] Fetching with Key Length: ${apiKey.length}`);
+
+    // CRITICAL: Use full URL with /api/v1 path
+    const url = 'https://api.nansen.ai/api/v1/smart-money/perp-trades';
+
+    const payload: PerpTradesRequest = {
+      chain: 'hyperliquid',
+      filters: {
+        include_smart_money_labels: [
+          'Smart Money',
+          'Smart Trader',
+          'Fund',
+          'Whale'
+        ],
+      },
+      pagination: {
+        limit: 500, // Good sample size
+      },
+    };
+
+    console.log('[Nansen] Request URL:', url);
+    console.log('[Nansen] Request payload:', JSON.stringify(payload, null, 2));
 
     try {
-      // Calculate date range for last 30 days (optional - omit if API doesn't support)
-      const toDate = new Date();
-      const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - 30);
-
-      const payload: PerpTradesRequest = {
-        chain: 'hyperliquid',
-        filters: {
-          include_smart_money_labels: [
-            'Smart Money',
-            'Smart Trader',
-            'Fund',
-            'Whale'
-          ],
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apiKey': apiKey, // THE FIX: camelCase 'apiKey' (not 'api-key')
         },
-        pagination: {
-          limit: 100, // Nansen typically limits to 100 per request
-        },
-        // Optional: Add date range if supported
-        // date: {
-        //   from: fromDate.toISOString().split('T')[0], // YYYY-MM-DD
-        //   to: toDate.toISOString().split('T')[0],
-        // },
-      };
+        body: JSON.stringify(payload),
+      });
 
-      console.log('[Nansen] Request payload:', JSON.stringify(payload, null, 2));
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Nansen Error]', response.status, errorText);
+        throw new Error(`Nansen Failed: ${response.status} - ${errorText}`);
+      }
 
-      const response = await this.request<any>(
-        '/smart-money/perp-trades',
-        payload
-      );
+      const data = await response.json();
 
       // Log response structure for debugging
-      console.log('[Nansen] Response type:', typeof response);
-      console.log('[Nansen] Response structure:', response ? Object.keys(response) : 'null');
+      console.log('[Nansen] Response type:', typeof data);
+      console.log('[Nansen] Response structure:', data ? Object.keys(data) : 'null');
       
       // Handle different response structures
       // Response might be: { data: [...], pagination: {...} } or directly [...]
       let trades: NansenPerpTrade[] = [];
       
-      if (Array.isArray(response)) {
-        trades = response;
+      if (Array.isArray(data)) {
+        trades = data;
         console.log(`[Nansen] Response is array with ${trades.length} items`);
-      } else if (response?.data && Array.isArray(response.data)) {
-        trades = response.data;
+      } else if (data?.data && Array.isArray(data.data)) {
+        trades = data.data;
         console.log(`[Nansen] Response has data array with ${trades.length} items`);
-      } else if (response?.trades && Array.isArray(response.trades)) {
-        trades = response.trades;
+      } else if (data?.trades && Array.isArray(data.trades)) {
+        trades = data.trades;
         console.log(`[Nansen] Response has trades array with ${trades.length} items`);
       } else {
-        console.error('[Nansen] Unexpected response structure:', JSON.stringify(response, null, 2));
+        console.error('[Nansen] Unexpected response structure:', JSON.stringify(data, null, 2));
         throw new Error('Unexpected response structure from Nansen API. Check logs for details.');
       }
 
