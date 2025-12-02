@@ -35,9 +35,10 @@ interface NansenPerpTrade {
 
 /**
  * Perp Trades Request Body - Correct Nansen V1 Schema
+ * Note: smart-money/perp-trades is Hyperliquid-exclusive, does NOT accept 'chain' parameter
  */
 interface PerpTradesRequest {
-  chain: string;
+  chain?: string; // Optional - not used by perp-trades endpoint (Hyperliquid-exclusive)
   filters: {
     include_smart_money_labels: string[];
   };
@@ -149,7 +150,7 @@ class NansenClient {
     const url = 'https://api.nansen.ai/api/v1/smart-money/perp-trades';
 
     const payload: PerpTradesRequest = {
-      chain: 'hyperliquid',
+      // REMOVED: chain - perp-trades endpoint is Hyperliquid-exclusive and doesn't accept this parameter
       filters: {
         include_smart_money_labels: [
           'Smart HL Perps Trader', // Most important - Hyperliquid specific
