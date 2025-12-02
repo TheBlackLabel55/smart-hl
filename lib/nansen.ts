@@ -186,66 +186,101 @@ class NansenClient {
 
       const data = await response.json();
 
-      // Log response structure for debugging
+      // DEBUG: Print what the API actually gave us
       console.log('[Nansen] Response type:', typeof data);
       console.log('[Nansen] Response structure:', data ? Object.keys(data) : 'null');
       
       // Handle different response structures
       // Response might be: { data: [...], pagination: {...} } or directly [...]
-      let trades: NansenPerpTrade[] = [];
+      let tradesArray: any[] = [];
       
       if (Array.isArray(data)) {
-        trades = data;
-        console.log(`[Nansen] Response is array with ${trades.length} items`);
+        tradesArray = data;
+        console.log(`[Nansen] Response is array with ${tradesArray.length} items`);
       } else if (data?.data && Array.isArray(data.data)) {
-        trades = data.data;
-        console.log(`[Nansen] Response has data array with ${trades.length} items`);
+        tradesArray = data.data;
+        console.log(`[Nansen] Response has data array with ${tradesArray.length} items`);
       } else if (data?.trades && Array.isArray(data.trades)) {
-        trades = data.trades;
-        console.log(`[Nansen] Response has trades array with ${trades.length} items`);
+        tradesArray = data.trades;
+        console.log(`[Nansen] Response has trades array with ${tradesArray.length} items`);
       } else {
         console.error('[Nansen] Unexpected response structure:', JSON.stringify(data, null, 2));
         throw new Error('Unexpected response structure from Nansen API. Check logs for details.');
       }
 
+      // DEBUG: Log first trade structure to see actual field names
+      if (tradesArray.length > 0) {
+        console.log('[Nansen Debug] First Trade Keys:', Object.keys(tradesArray[0]));
+        console.log('[Nansen Debug] Sample Trade Data:', JSON.stringify(tradesArray[0], null, 2));
+      } else {
+        console.log('[Nansen Debug] API returned empty array');
+        return {};
+      }
+
+      // Helper function to safely extract address from trade object
+      const getAddress = (trade: any): string | null => {
+        return trade.address || trade.wallet_address || trade.account || trade.user || trade.wallet || null;
+      };
+
+      // Helper function to safely extract labels
+      const getLabels = (trade: any): string[] => {
+        return trade.smart_money_labels || trade.labels || trade.smart_money_label || ['Smart HL Trader'];
+      };
+
       // Transform Trades -> Unique Wallets
       const walletMap: Record<string, SimplifiedSmartWallet> = {};
 
-      trades.forEach((trade) => {
-        const address = trade.wallet_address.toLowerCase();
+      tradesArray.forEach((trade, index) => {
+        // Try to find the address field dynamically
+        const rawAddress = getAddress(trade);
+        
+        if (!rawAddress) {
+          if (index === 0) {
+            console.warn('[Nansen Warning] Could not find address field in trade object');
+            console.warn('[Nansen Warning] Available fields:', Object.keys(trade));
+          }
+          return; // Skip this bad record
+        }
+
+        // Safety guard: ensure rawAddress is a string before calling toLowerCase
+        const address = typeof rawAddress === 'string' ? rawAddress.toLowerCase() : String(rawAddress).toLowerCase();
+        
+        // Get labels safely
+        const labels = getLabels(trade);
+        const labelsArray = Array.isArray(labels) ? labels : [labels].filter(Boolean);
         
         if (!walletMap[address]) {
           // Determine tier based on labels
           let tier: 'smart' | 'whale' | 'institution' = 'smart';
-          const labels = trade.smart_money_labels || ['Smart Trader'];
           
-          if (labels.some(l => 
-            l.toLowerCase().includes('fund') || 
-            l.toLowerCase().includes('institution')
+          if (labelsArray.some(l => 
+            String(l).toLowerCase().includes('fund') || 
+            String(l).toLowerCase().includes('institution')
           )) {
             tier = 'institution';
-          } else if (labels.some(l => l.toLowerCase().includes('whale'))) {
+          } else if (labelsArray.some(l => String(l).toLowerCase().includes('whale'))) {
             tier = 'whale';
           }
 
           walletMap[address] = {
-            label: labels[0] || 'Smart Trader',
-            tags: labels,
+            label: labelsArray[0] || 'Smart HL Trader',
+            tags: labelsArray,
             winRate: 0, // Not available from perp-trades endpoint
             tier,
           };
         } else {
           // Merge labels if wallet already exists
           const existing = walletMap[address];
-          const newLabels = trade.smart_money_labels || [];
-          const mergedLabels = Array.from(new Set([...existing.tags, ...newLabels]));
+          const newLabels = getLabels(trade);
+          const newLabelsArray = Array.isArray(newLabels) ? newLabels : [newLabels].filter(Boolean);
+          const mergedLabels = Array.from(new Set([...existing.tags, ...newLabelsArray]));
           walletMap[address].tags = mergedLabels;
           walletMap[address].label = mergedLabels[0] || existing.label;
         }
       });
 
       const count = Object.keys(walletMap).length;
-      console.log(`[Nansen] ✅ Found ${count} unique active Smart Money wallets from Hyperliquid`);
+      console.log(`[Nansen] ✅ Successfully parsed ${count} unique Smart Wallets from ${tradesArray.length} trades`);
 
       return walletMap;
     } catch (error) {
