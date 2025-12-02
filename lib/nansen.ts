@@ -217,26 +217,16 @@ class NansenClient {
         return {};
       }
 
-      // Helper function to safely extract address from trade object
-      const getAddress = (trade: any): string | null => {
-        return trade.address || trade.wallet_address || trade.account || trade.user || trade.wallet || null;
-      };
-
-      // Helper function to safely extract labels
-      const getLabels = (trade: any): string[] => {
-        return trade.smart_money_labels || trade.labels || trade.smart_money_label || ['Smart HL Trader'];
-      };
-
       // Transform Trades -> Unique Wallets
       const walletMap: Record<string, SimplifiedSmartWallet> = {};
 
       tradesArray.forEach((trade, index) => {
-        // Try to find the address field dynamically
-        const rawAddress = getAddress(trade);
+        // 1. Extract Address using the confirmed key: trader_address
+        const rawAddress = trade.trader_address;
         
         if (!rawAddress) {
           if (index === 0) {
-            console.warn('[Nansen Warning] Could not find address field in trade object');
+            console.warn('[Nansen Warning] Could not find trader_address field in trade object');
             console.warn('[Nansen Warning] Available fields:', Object.keys(trade));
           }
           return; // Skip this bad record
@@ -245,42 +235,49 @@ class NansenClient {
         // Safety guard: ensure rawAddress is a string before calling toLowerCase
         const address = typeof rawAddress === 'string' ? rawAddress.toLowerCase() : String(rawAddress).toLowerCase();
         
-        // Get labels safely
-        const labels = getLabels(trade);
-        const labelsArray = Array.isArray(labels) ? labels : [labels].filter(Boolean);
+        // 2. Extract Label (Handle string vs array vs null)
+        // trader_address_label is typically a single string, wrap it in array
+        let labels: string[] = ['Smart HL Trader']; // Default fallback
         
+        if (trade.trader_address_label) {
+          // If it's a string like "Smart NFT Trader", make it ["Smart NFT Trader"]
+          labels = Array.isArray(trade.trader_address_label) 
+            ? trade.trader_address_label.filter(Boolean) // Filter out null/undefined
+            : [trade.trader_address_label].filter(Boolean);
+        }
+        
+        // 3. Build the Map
         if (!walletMap[address]) {
           // Determine tier based on labels
           let tier: 'smart' | 'whale' | 'institution' = 'smart';
           
-          if (labelsArray.some(l => 
+          if (labels.some(l => 
             String(l).toLowerCase().includes('fund') || 
             String(l).toLowerCase().includes('institution')
           )) {
             tier = 'institution';
-          } else if (labelsArray.some(l => String(l).toLowerCase().includes('whale'))) {
+          } else if (labels.some(l => String(l).toLowerCase().includes('whale'))) {
             tier = 'whale';
           }
 
           walletMap[address] = {
-            label: labelsArray[0] || 'Smart HL Trader',
-            tags: labelsArray,
+            label: labels[0] || 'Smart HL Trader',
+            tags: labels,
             winRate: 0, // Not available from perp-trades endpoint
             tier,
           };
         } else {
-          // Merge labels if wallet already exists
+          // Optional: If we see the same wallet again with a different label, merge them
           const existing = walletMap[address];
-          const newLabels = getLabels(trade);
-          const newLabelsArray = Array.isArray(newLabels) ? newLabels : [newLabels].filter(Boolean);
-          const mergedLabels = Array.from(new Set([...existing.tags, ...newLabelsArray]));
-          walletMap[address].tags = mergedLabels;
-          walletMap[address].label = mergedLabels[0] || existing.label;
+          const existingLabels = new Set(existing.tags);
+          labels.forEach(l => existingLabels.add(String(l)));
+          walletMap[address].tags = Array.from(existingLabels);
+          walletMap[address].label = Array.from(existingLabels)[0] || existing.label;
         }
       });
 
       const count = Object.keys(walletMap).length;
-      console.log(`[Nansen] ✅ Successfully parsed ${count} unique Smart Wallets from ${tradesArray.length} trades`);
+      console.log(`[Nansen] ✅ Successfully parsed ${count} unique Smart Wallets.`);
 
       return walletMap;
     } catch (error) {
