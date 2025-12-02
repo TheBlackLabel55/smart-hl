@@ -156,7 +156,7 @@ class NansenClient {
           // Merge labels if wallet already exists
           const existing = walletMap[address];
           const newLabels = trade.smart_money_labels || [];
-          const mergedLabels = [...new Set([...existing.tags, ...newLabels])];
+          const mergedLabels = Array.from(new Set([...existing.tags, ...newLabels]));
           walletMap[address].tags = mergedLabels;
           walletMap[address].label = mergedLabels[0] || existing.label;
         }
