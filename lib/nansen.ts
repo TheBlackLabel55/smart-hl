@@ -152,10 +152,11 @@ class NansenClient {
       chain: 'hyperliquid',
       filters: {
         include_smart_money_labels: [
-          'Smart Money',
+          'Smart HL Perps Trader', // Most important - Hyperliquid specific
           'Smart Trader',
           'Fund',
-          'Whale'
+          '30D Smart Trader',
+          '90D Smart Trader'
         ],
       },
       pagination: {
