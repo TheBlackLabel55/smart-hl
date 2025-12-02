@@ -3,8 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/refresh-smart-money",
-      "schedule": "0 0 * * *"
+      "schedule": "0 0 1 * *"
     }
   ]
 }
-

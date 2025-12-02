@@ -1,13 +1,13 @@
 /**
  * Nansen API Client
  * Handles all interactions with Nansen Pro API endpoints
- * Rate limited - use with caching strategy only
  * 
- * FIXED: Uses POST requests with proper headers as per Nansen API spec
+ * CREDIT OPTIMIZED: Uses perp-trades endpoint to discover active Smart Money wallets
+ * Runs once monthly to preserve API credits (10k limit)
  */
 
 import type { NansenSmartMoneyResponse, NansenSmartMoneyItem } from '@/types';
-import { NANSEN_API_BASE_URL, CHAIN_ID_ARBITRUM } from './constants';
+import { NANSEN_API_BASE_URL } from './constants';
 
 const NANSEN_API_KEY = process.env.NANSEN_API_KEY || '';
 
@@ -21,6 +21,26 @@ interface NansenPostRequest {
   cursor?: string;
   limit?: number;
   timeframe?: '24h' | '7d' | '30d';
+}
+
+/**
+ * Nansen Perp Trade Response Type
+ * The perp-trades endpoint returns an array of trades
+ */
+interface NansenPerpTrade {
+  wallet_address: string;
+  smart_money_labels: string[];
+  // Other fields we ignore: exchange, timestamp, amount, etc.
+}
+
+/**
+ * Perp Trades Request Body
+ */
+interface PerpTradesRequest {
+  exchange: string;
+  smart_money_label: string;
+  last_n_days: number;
+  limit: number;
 }
 
 class NansenClient {
@@ -40,7 +60,7 @@ class NansenClient {
    */
   private async request<T>(
     endpoint: string, 
-    body?: NansenPostRequest
+    body?: NansenPostRequest | PerpTradesRequest
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
@@ -50,7 +70,7 @@ class NansenClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey, // Nansen uses 'api-key' header, not 'Authorization'
+          'api-key': this.apiKey, // Nansen uses 'api-key' header
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
@@ -81,59 +101,86 @@ class NansenClient {
   }
 
   /**
-   * Fetch Smart Money wallets from Nansen
-   * Uses POST with JSON body as per Nansen API specification
+   * Fetch Smart Money wallets from Hyperliquid perp trades
+   * 
+   * Uses the perp-trades endpoint to discover active Smart Money wallets
+   * by analyzing trades from the last 30 days
+   * 
+   * @returns SmartMoneyCache - Map of wallet addresses to their metadata
+   */
+  async fetchSmartMoneyWallets(): Promise<Record<string, SimplifiedSmartWallet>> {
+    if (!this.apiKey) {
+      throw new Error('Missing NANSEN_API_KEY environment variable');
+    }
+
+    console.log('[Nansen] Fetching active Hyperliquid Smart Money from perp-trades...');
+
+    try {
+      const response = await this.request<NansenPerpTrade[]>(
+        '/smart-money/perp-trades',
+        {
+          exchange: 'hyperliquid',
+          smart_money_label: 'Smart Money',
+          last_n_days: 30, // CAPTURE FULL MONTH OF ACTIVITY
+          limit: 1000, // Increase limit to ensure we get a good sample
+        }
+      );
+
+      // Transform Trades -> Unique Wallets
+      const walletMap: Record<string, SimplifiedSmartWallet> = {};
+
+      (response as NansenPerpTrade[]).forEach((trade) => {
+        const address = trade.wallet_address.toLowerCase();
+        
+        if (!walletMap[address]) {
+          // Determine tier based on labels
+          let tier: 'smart' | 'whale' | 'institution' = 'smart';
+          const labels = trade.smart_money_labels || ['Smart Trader'];
+          
+          if (labels.some(l => 
+            l.toLowerCase().includes('fund') || 
+            l.toLowerCase().includes('institution')
+          )) {
+            tier = 'institution';
+          } else if (labels.some(l => l.toLowerCase().includes('whale'))) {
+            tier = 'whale';
+          }
+
+          walletMap[address] = {
+            label: labels[0] || 'Smart Trader',
+            tags: labels,
+            winRate: 0, // Not available from perp-trades endpoint
+            tier,
+          };
+        } else {
+          // Merge labels if wallet already exists
+          const existing = walletMap[address];
+          const newLabels = trade.smart_money_labels || [];
+          const mergedLabels = [...new Set([...existing.tags, ...newLabels])];
+          walletMap[address].tags = mergedLabels;
+          walletMap[address].label = mergedLabels[0] || existing.label;
+        }
+      });
+
+      const count = Object.keys(walletMap).length;
+      console.log(`[Nansen] ✅ Found ${count} unique active Smart Money wallets from Hyperliquid`);
+
+      return walletMap;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[Nansen] ❌ Failed to fetch Smart Money wallets:', errorMessage);
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy method - kept for backward compatibility
+   * @deprecated Use fetchSmartMoneyWallets() instead
    */
   async getSmartMoneyWallets(chain: string = 'arbitrum'): Promise<NansenSmartMoneyItem[]> {
-    const allWallets: NansenSmartMoneyItem[] = [];
-    let cursor: string | undefined;
-
-    // Map chain name to chain ID
-    const chainId = chain === 'arbitrum' ? CHAIN_ID_ARBITRUM : CHAIN_ID_ARBITRUM; // Default to Arbitrum
-
-    do {
-      const body: NansenPostRequest = {
-        min_balance_usd: 100000, // Minimum balance filter
-        chain_id: chainId,
-        limit: 100, // Max per page
-      };
-
-      if (cursor) {
-        body.cursor = cursor;
-      }
-
-      try {
-        const response = await this.request<NansenSmartMoneyResponse>(
-          '/smart-money/holdings', // Using holdings endpoint
-          body
-        );
-
-        allWallets.push(...response.data);
-        cursor = response.next_cursor;
-      } catch (error) {
-        console.error('[Nansen] Error fetching Smart Money wallets:', error);
-        // If first request fails, try alternative endpoint
-        if (allWallets.length === 0) {
-          console.log('[Nansen] Trying alternative endpoint: /token_flows');
-          try {
-            const altResponse = await this.request<NansenSmartMoneyResponse>(
-              '/token_flows',
-              { chain_id: chainId }
-            );
-            allWallets.push(...altResponse.data);
-            cursor = altResponse.next_cursor;
-          } catch (altError) {
-            console.error('[Nansen] Alternative endpoint also failed:', altError);
-            throw error; // Throw original error
-          }
-        } else {
-          // If we have some data, break and return what we have
-          break;
-        }
-      }
-    } while (cursor);
-
-    return allWallets;
+    console.warn('[Nansen] getSmartMoneyWallets() is deprecated. Use fetchSmartMoneyWallets() instead.');
+    // Return empty array to avoid breaking existing code
+    return [];
   }
 
   /**
@@ -144,24 +191,9 @@ class NansenClient {
     chain: string = 'arbitrum',
     timeframe: '24h' | '7d' | '30d' = '24h'
   ): Promise<NansenSmartMoneyItem[]> {
-    const chainId = chain === 'arbitrum' ? CHAIN_ID_ARBITRUM : CHAIN_ID_ARBITRUM;
-
-    try {
-      const response = await this.request<NansenSmartMoneyResponse>(
-        '/leaderboard/traders',
-        {
-          chain_id: chainId,
-          timeframe,
-          min_balance_usd: 50000, // Lower threshold for leaderboard
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error('[Nansen] Error fetching leaderboard:', error);
-      // Return empty array on error rather than crashing
-      return [];
-    }
+    // Return empty array - we're using perp-trades endpoint instead
+    console.warn('[Nansen] getLeaderboard() is deprecated. Use fetchSmartMoneyWallets() instead.');
+    return [];
   }
 
   /**
@@ -196,6 +228,7 @@ export type SmartMoneyCache = Record<string, SimplifiedSmartWallet>;
 
 /**
  * Transform Nansen response into optimized lookup map
+ * @deprecated Use fetchSmartMoneyWallets() which returns SmartMoneyCache directly
  */
 export function transformToCache(wallets: NansenSmartMoneyItem[]): SmartMoneyCache {
   const cache: SmartMoneyCache = {};
