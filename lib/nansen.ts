@@ -34,13 +34,20 @@ interface NansenPerpTrade {
 }
 
 /**
- * Perp Trades Request Body
+ * Perp Trades Request Body - Correct Nansen V1 Schema
  */
 interface PerpTradesRequest {
-  exchange: string;
-  smart_money_label: string;
-  last_n_days: number;
-  limit: number;
+  chain: string;
+  filters: {
+    include_smart_money_labels: string[];
+  };
+  pagination: {
+    limit: number;
+  };
+  date?: {
+    from?: string; // YYYY-MM-DD format
+    to?: string; // YYYY-MM-DD format
+  };
 }
 
 class NansenClient {
@@ -104,7 +111,7 @@ class NansenClient {
    * Fetch Smart Money wallets from Hyperliquid perp trades
    * 
    * Uses the perp-trades endpoint to discover active Smart Money wallets
-   * by analyzing trades from the last 30 days
+   * Uses correct Nansen V1 API schema
    * 
    * @returns SmartMoneyCache - Map of wallet addresses to their metadata
    */
@@ -116,20 +123,64 @@ class NansenClient {
     console.log('[Nansen] Fetching active Hyperliquid Smart Money from perp-trades...');
 
     try {
-      const response = await this.request<NansenPerpTrade[]>(
+      // Calculate date range for last 30 days (optional - omit if API doesn't support)
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 30);
+
+      const payload: PerpTradesRequest = {
+        chain: 'hyperliquid',
+        filters: {
+          include_smart_money_labels: [
+            'Smart Money',
+            'Smart Trader',
+            'Fund',
+            'Whale'
+          ],
+        },
+        pagination: {
+          limit: 100, // Nansen typically limits to 100 per request
+        },
+        // Optional: Add date range if supported
+        // date: {
+        //   from: fromDate.toISOString().split('T')[0], // YYYY-MM-DD
+        //   to: toDate.toISOString().split('T')[0],
+        // },
+      };
+
+      console.log('[Nansen] Request payload:', JSON.stringify(payload, null, 2));
+
+      const response = await this.request<any>(
         '/smart-money/perp-trades',
-        {
-          exchange: 'hyperliquid',
-          smart_money_label: 'Smart Money',
-          last_n_days: 30, // CAPTURE FULL MONTH OF ACTIVITY
-          limit: 1000, // Increase limit to ensure we get a good sample
-        }
+        payload
       );
+
+      // Log response structure for debugging
+      console.log('[Nansen] Response type:', typeof response);
+      console.log('[Nansen] Response structure:', response ? Object.keys(response) : 'null');
+      
+      // Handle different response structures
+      // Response might be: { data: [...], pagination: {...} } or directly [...]
+      let trades: NansenPerpTrade[] = [];
+      
+      if (Array.isArray(response)) {
+        trades = response;
+        console.log(`[Nansen] Response is array with ${trades.length} items`);
+      } else if (response?.data && Array.isArray(response.data)) {
+        trades = response.data;
+        console.log(`[Nansen] Response has data array with ${trades.length} items`);
+      } else if (response?.trades && Array.isArray(response.trades)) {
+        trades = response.trades;
+        console.log(`[Nansen] Response has trades array with ${trades.length} items`);
+      } else {
+        console.error('[Nansen] Unexpected response structure:', JSON.stringify(response, null, 2));
+        throw new Error('Unexpected response structure from Nansen API. Check logs for details.');
+      }
 
       // Transform Trades -> Unique Wallets
       const walletMap: Record<string, SimplifiedSmartWallet> = {};
 
-      (response as NansenPerpTrade[]).forEach((trade) => {
+      trades.forEach((trade) => {
         const address = trade.wallet_address.toLowerCase();
         
         if (!walletMap[address]) {
