@@ -59,6 +59,12 @@ class NansenClient {
     this.baseUrl = NANSEN_API_BASE_URL;
     this.apiKey = NANSEN_API_KEY;
     this.timeout = options.timeout || 30000;
+    
+    // Debug: Log API key status at construction
+    console.log('[Nansen Client] Initializing...');
+    console.log('[Nansen Client] Base URL:', this.baseUrl);
+    console.log('[Nansen Client] Key exists?', !!this.apiKey);
+    console.log('[Nansen Client] Key length:', this.apiKey?.length || 0);
   }
 
   /**
@@ -69,17 +75,29 @@ class NansenClient {
     endpoint: string, 
     body?: NansenPostRequest | PerpTradesRequest
   ): Promise<T> {
+    // CRITICAL: Get fresh API key from process.env
+    const apiKey = process.env.NANSEN_API_KEY || this.apiKey;
+    
+    if (!apiKey) {
+      console.error('[Nansen Request] API key is missing!');
+      throw new Error('NANSEN_API_KEY is required for API requests');
+    }
+    
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    // Log request details (without exposing full key)
+    console.log(`[Nansen Request] URL: ${url}`);
+    console.log(`[Nansen Request] API key present: ${!!apiKey}, length: ${apiKey.length}`);
+    console.log(`[Nansen Request] Header 'api-key' will be set: ${!!apiKey}`);
 
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey, // Nansen uses 'api-key' header
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'api-key': apiKey as string, // STRICT: lowercase 'api-key' as per Nansen docs
         },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
@@ -116,8 +134,30 @@ class NansenClient {
    * @returns SmartMoneyCache - Map of wallet addresses to their metadata
    */
   async fetchSmartMoneyWallets(): Promise<Record<string, SimplifiedSmartWallet>> {
-    if (!this.apiKey) {
+    // CRITICAL: Check API key directly from process.env (not cached instance variable)
+    const apiKey = process.env.NANSEN_API_KEY;
+    
+    // 1. Sanity Check with detailed logging
+    console.log('[Nansen Init] Loading configuration...');
+    console.log('[Nansen Check] Key exists?', !!apiKey);
+    console.log('[Nansen Check] Key length:', apiKey?.length || 0);
+    console.log('[Nansen Check] Key first 4 chars:', apiKey ? `${apiKey.substring(0, 4)}...` : 'N/A');
+    console.log('[Nansen Check] Instance key exists?', !!this.apiKey);
+    console.log('[Nansen Check] Instance key length:', this.apiKey?.length || 0);
+    
+    if (!apiKey) {
+      console.error('[Nansen Fatal] NANSEN_API_KEY is missing from process.env');
+      console.error('[Nansen Fatal] Available env vars:', Object.keys(process.env).filter(k => k.includes('NANSEN')));
       throw new Error('Missing NANSEN_API_KEY environment variable');
+    }
+    
+    // 2. Safe Log (without exposing full key)
+    console.log(`[Nansen Init] Key loaded successfully. Length: ${apiKey.length}`);
+    
+    // Update instance variable if it was empty
+    if (!this.apiKey) {
+      console.log('[Nansen Init] Updating instance key from process.env');
+      this.apiKey = apiKey;
     }
 
     console.log('[Nansen] Fetching active Hyperliquid Smart Money from perp-trades...');
