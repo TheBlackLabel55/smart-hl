@@ -7,7 +7,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useStore } from '@/store/useStore';
-import type { SmartMoneyCache } from '@/lib/nansen';
+import type { SmartWalletMap } from '@/types';
 
 interface LoaderState {
   isLoading: boolean;
@@ -48,7 +48,7 @@ export function useSmartMoneyLoader() {
         throw new Error(result.error || 'Unknown error fetching cache');
       }
 
-      const data = result.data as SmartMoneyCache;
+      const data = result.data as SmartWalletMap;
       const walletCount = Object.keys(data).length;
 
       // Update store

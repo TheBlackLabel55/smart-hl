@@ -6,7 +6,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import type { UnifiedTradeLog, SmartWalletMap } from '@/types';
-import type { SmartMoneyCache } from '@/lib/nansen';
 
 // Connection states
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -48,7 +47,7 @@ interface StoreState {
   };
 
   // Actions
-  setSmartMoneyMap: (map: SmartMoneyCache) => void;
+  setSmartMoneyMap: (map: SmartWalletMap) => void;
   setLoadingSmartMoney: (loading: boolean) => void;
   addTrade: (trade: UnifiedTradeLog) => void;
   addTrades: (trades: UnifiedTradeLog[]) => void;
@@ -96,19 +95,9 @@ export const useStore = create<StoreState>()(
 
     // Actions
     setSmartMoneyMap: (map) => {
-      // Transform SmartMoneyCache to SmartWalletMap format
-      const walletMap: SmartWalletMap = {};
-      
-      for (const [address, data] of Object.entries(map)) {
-        walletMap[address] = {
-          isSmartMoney: true,
-          labels: data.tags,
-          tier: data.tier,
-        };
-      }
-
+      // Direct assignment - API now returns SmartWalletMap format
       set({
-        smartMoneyMap: walletMap,
+        smartMoneyMap: map,
         smartMoneyCacheTimestamp: Date.now(),
       });
     },

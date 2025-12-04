@@ -2,7 +2,9 @@
  * Lib barrel export
  */
 
-export { nansenClient, transformToCache, type SmartMoneyCache, type SimplifiedSmartWallet } from './nansen';
-export { setSmartMoneyCache, getSmartMoneyCache, isCacheStale, getCacheStats, type CacheMetadata } from './cache';
+// Note: Nansen and cache exports removed - using static wallet list instead
+// See: lib/data/static-wallets.ts
+
 export * from './utils';
+export * from './constants';
 
