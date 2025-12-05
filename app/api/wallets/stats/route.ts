@@ -34,24 +34,19 @@ function generateMockStats(address: string): WalletStats {
   const volume7d = (seedNum % 5000000) + 100000;
   const volume30d = volume7d * 4 + (seedNum % 10000000);
   const twap = 50000 + (seedNum % 20000);
-  const longPosition = (seedNum % 2000000) + 50000;
-  const shortPosition = (seedNum % 1500000) + 30000;
 
-  // Comprehensive list of Hyperliquid tokens (majors, alts, and native tokens)
+  // Top cryptocurrencies by market cap from CoinMarketCap (excluding stablecoins)
+  // Sorted by market cap ranking
   const tokens = [
-    // Major cryptocurrencies
-    'BTC', 'ETH', 'SOL', 'ARB', 'MATIC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'DOT',
-    'ADA', 'XRP', 'DOGE', 'SHIB', 'LTC', 'BCH', 'ETC', 'ALGO', 'NEAR', 'APT',
-    'SUI', 'OP', 'STRK', 'BLUR', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'JUP', 'RAY',
-    // Hyperliquid native tokens
-    'HYPE', 'PURR', 'HFUN', 'CATBAL',
-    // Other Hyperliquid ecosystem tokens
-    'USDH', 'SLAY', 'RZR', 'BUDDY', 'PIP', 'RAGE',
-    // Additional popular tokens
-    'AAVE', 'COMP', 'MKR', 'SNX', 'CRV', 'YFI', 'SUSHI', '1INCH', 'GMX', 'GNS',
-    'MATIC', 'FTM', 'ONE', 'HBAR', 'ICP', 'FIL', 'GRT', 'BAT', 'ZRX', 'ENJ',
-    'MANA', 'SAND', 'AXS', 'GALA', 'CHZ', 'FLOW', 'THETA', 'EOS', 'TRX', 'XLM',
-    'VET', 'XTZ', 'ZEC', 'DASH', 'XMR', 'BNB', 'CAKE', 'BAKE', 'BURGER', 'ALPACA',
+    'BTC', 'ETH', 'XRP', 'BNB', 'SOL', 'DOGE', 'ADA', 'TRX', 'BCH', 'HYPE',
+    'LINK', 'XLM', 'XMR', 'LTC', 'APT', 'UNI', 'ICP', 'TON', 'ARB', 'OP',
+    'AVAX', 'SUI', 'ATOM', 'DOT', 'NEAR', 'MATIC', 'ALGO', 'ETC', 'VET', 'FIL',
+    'AAVE', 'INJ', 'STX', 'XTZ', 'TIA', 'GRT', 'RENDER', 'FET', 'STRK', 'LDO',
+    'CRV', 'MORPHO', 'ETHFI', 'FLOKI', 'PEPE', 'BONK', 'JUP', 'SEI', 'IMX', 'CRO',
+    'QNT', 'FLR', 'XDC', 'NEXO', 'DASH', 'ZEC', 'HBAR', 'ONE', 'FTM', 'MANA',
+    'SAND', 'AXS', 'GALA', 'CHZ', 'FLOW', 'THETA', 'EOS', 'ENJ', 'BAT', 'ZRX',
+    'SNX', 'COMP', 'MKR', 'YFI', 'SUSHI', '1INCH', 'GMX', 'GNS', 'RAY', 'WIF',
+    'BLUR', 'JUP', 'PURR', 'HFUN', 'CATBAL', 'SLAY', 'RZR', 'BUDDY', 'PIP', 'RAGE',
   ];
   
   // Generate positions (1-4 positions per wallet)
@@ -67,6 +62,14 @@ function generateMockStats(address: string): WalletStats {
       side: side as 'Long' | 'Short',
     });
   }
+
+  // Calculate longPosition and shortPosition from generated positions
+  const longPosition = positions
+    .filter(p => p.side === 'Long')
+    .reduce((sum, p) => sum + p.sizeUsd, 0);
+  const shortPosition = positions
+    .filter(p => p.side === 'Short')
+    .reduce((sum, p) => sum + p.sizeUsd, 0);
 
   // Generate active TWAPs (0-2 TWAPs per wallet, ~30% chance)
   const activeTwaps = [];

@@ -13,8 +13,6 @@ interface UseSmartWalletsState {
   isLoading: boolean;
   error: string | null;
   progress: number; // 0-100
-  totalLong: number;
-  totalShort: number;
 }
 
 const INITIAL_DISPLAY_LIMIT = 20; // Show 20 wallets initially
@@ -26,8 +24,6 @@ export function useSmartWallets() {
     isLoading: true,
     error: null,
     progress: 0,
-    totalLong: 0,
-    totalShort: 0,
   });
 
   const [sortField, setSortField] = useState<SortField | null>(null);
@@ -57,8 +53,6 @@ export function useSmartWallets() {
         isLoading: false,
         error: null,
         progress: 100,
-        totalLong: result.metadata?.totalLong || 0,
-        totalShort: result.metadata?.totalShort || 0,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -159,9 +153,41 @@ export function useSmartWallets() {
     return filtered.length > displayLimit;
   }, [state.wallets, selectedToken, displayLimit]);
 
+  // Calculate totalLong and totalShort dynamically based on selectedToken
+  const { totalLong, totalShort } = useMemo(() => {
+    if (!selectedToken) {
+      // No token filter: sum all wallets' aggregate positions
+      const totalLong = state.wallets.reduce((sum, wallet) => sum + (wallet.longPosition || 0), 0);
+      const totalShort = state.wallets.reduce((sum, wallet) => sum + (wallet.shortPosition || 0), 0);
+      return { totalLong, totalShort };
+    } else {
+      // Token filter active: sum positions matching the selected token
+      let totalLong = 0;
+      let totalShort = 0;
+      
+      state.wallets.forEach(wallet => {
+        if (wallet.positions) {
+          wallet.positions.forEach(position => {
+            if (position.coin === selectedToken) {
+              if (position.side === 'Long') {
+                totalLong += position.sizeUsd;
+              } else {
+                totalShort += position.sizeUsd;
+              }
+            }
+          });
+        }
+      });
+      
+      return { totalLong, totalShort };
+    }
+  }, [state.wallets, selectedToken]);
+
   return {
     ...state,
     wallets: filteredAndSortedWallets,
+    totalLong,
+    totalShort,
     sortField,
     sortDirection,
     handleSort,
