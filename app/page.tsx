@@ -63,7 +63,7 @@ export default function DashboardPage() {
   }, [isLoading, hasMore, loadMore]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-base-900">
+    <div className="flex flex-col h-screen bg-base-900">
       {/* Dashboard Header */}
       <DashboardHeader
         totalLong={totalLong}

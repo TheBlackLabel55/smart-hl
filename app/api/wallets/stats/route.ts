@@ -37,8 +37,22 @@ function generateMockStats(address: string): WalletStats {
   const longPosition = (seedNum % 2000000) + 50000;
   const shortPosition = (seedNum % 1500000) + 30000;
 
-  // Common tokens for mock data
-  const tokens = ['BTC', 'ETH', 'SOL', 'ARB', 'MATIC', 'AVAX', 'LINK', 'UNI'];
+  // Comprehensive list of Hyperliquid tokens (majors, alts, and native tokens)
+  const tokens = [
+    // Major cryptocurrencies
+    'BTC', 'ETH', 'SOL', 'ARB', 'MATIC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'DOT',
+    'ADA', 'XRP', 'DOGE', 'SHIB', 'LTC', 'BCH', 'ETC', 'ALGO', 'NEAR', 'APT',
+    'SUI', 'OP', 'STRK', 'BLUR', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'JUP', 'RAY',
+    // Hyperliquid native tokens
+    'HYPE', 'PURR', 'HFUN', 'CATBAL',
+    // Other Hyperliquid ecosystem tokens
+    'USDH', 'SLAY', 'RZR', 'BUDDY', 'PIP', 'RAGE',
+    // Additional popular tokens
+    'AAVE', 'COMP', 'MKR', 'SNX', 'CRV', 'YFI', 'SUSHI', '1INCH', 'GMX', 'GNS',
+    'MATIC', 'FTM', 'ONE', 'HBAR', 'ICP', 'FIL', 'GRT', 'BAT', 'ZRX', 'ENJ',
+    'MANA', 'SAND', 'AXS', 'GALA', 'CHZ', 'FLOW', 'THETA', 'EOS', 'TRX', 'XLM',
+    'VET', 'XTZ', 'ZEC', 'DASH', 'XMR', 'BNB', 'CAKE', 'BAKE', 'BURGER', 'ALPACA',
+  ];
   
   // Generate positions (1-4 positions per wallet)
   const numPositions = 1 + (seedNum % 4);

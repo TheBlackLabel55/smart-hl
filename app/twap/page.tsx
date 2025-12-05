@@ -133,7 +133,7 @@ export default function TwapPage() {
   }, [wallets]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-base-900">
+    <div className="flex flex-col h-screen bg-base-900">
       {/* Header */}
       <div className="border-b border-gunmetal-700 bg-base-900/80 backdrop-blur-sm">
         <div className="px-6 py-4">

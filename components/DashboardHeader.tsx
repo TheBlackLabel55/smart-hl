@@ -7,7 +7,8 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { cn, formatUSD } from '@/lib/utils';
 
 interface DashboardHeaderProps {
@@ -38,12 +39,26 @@ export const DashboardHeader = memo(function DashboardHeader({
           <h1 className="text-2xl font-display font-bold text-white tracking-tight">
             Smart-HL Dashboard
           </h1>
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-gray-400 font-mono">
-              <div className="w-2 h-2 rounded-full bg-electric-lime animate-pulse" />
-              <span>Loading...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            <Link
+              href="/twap"
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 text-sm font-mono font-semibold',
+                'border border-electric-lime/30 rounded transition-all',
+                'text-electric-lime hover:bg-electric-lime/10 hover:border-electric-lime/50',
+                'hover:shadow-neon-green'
+              )}
+            >
+              <Clock className="w-4 h-4" />
+              TWAP Tracker
+            </Link>
+            {isLoading && (
+              <div className="flex items-center gap-2 text-sm text-gray-400 font-mono">
+                <div className="w-2 h-2 rounded-full bg-electric-lime animate-pulse" />
+                <span>Loading...</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Long vs Short Visualization */}
