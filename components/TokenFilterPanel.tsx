@@ -94,13 +94,13 @@ export function TokenFilterPanel({
   const displayValue = selectedToken || searchQuery;
 
   return (
-    <div className="px-6 py-3 border-b border-gunmetal-700 bg-base-800/50">
-      <div className="flex items-center gap-4">
+    <div className="px-4 sm:px-6 py-3 border-b border-gunmetal-700 bg-base-800/50">
+      <div className="flex items-center gap-4 flex-wrap">
         <span className="text-xs font-mono uppercase tracking-wider text-gray-400">
           Filter by Token:
         </span>
         
-        <div className="relative">
+        <div className="relative w-full sm:w-80">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
@@ -111,7 +111,7 @@ export function TokenFilterPanel({
               onFocus={handleInputFocus}
               placeholder="Type to search (e.g., B for BTC, BNB...)"
               className={cn(
-                'pl-9 pr-8 py-2 text-sm font-mono w-64',
+                'pl-9 pr-8 py-2 text-sm font-mono w-full min-h-[44px]',
                 'bg-gunmetal-800 border border-gunmetal-600 rounded',
                 'text-white placeholder:text-gray-500',
                 'focus:outline-none focus:border-electric-lime',
@@ -145,7 +145,7 @@ export function TokenFilterPanel({
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
                 className={cn(
-                  'absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto',
+                  'absolute top-full left-0 mt-1 w-full max-h-64 overflow-y-auto',
                   'bg-gunmetal-800 border border-gunmetal-600 rounded',
                   'shadow-xl z-50'
                 )}

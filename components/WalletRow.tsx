@@ -58,7 +58,7 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       )}
     >
       {/* Wallet Address */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <a
           href={`${EXPLORER_URL}/address/${wallet.address}`}
           target="_blank"
@@ -75,7 +75,7 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* Side (Long/Short) */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         {side ? (
           <span className={cn(
             'px-3 py-1 rounded text-xs font-bold uppercase tracking-wider',
@@ -91,14 +91,14 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* Position Size */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className="font-mono text-sm mono-nums text-gray-200">
           {size > 0 ? formatUSD(size) : '-'}
         </span>
       </td>
 
       {/* 1D PnL */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className={cn(
           'font-mono text-sm mono-nums',
           wallet.pnl1d > 0 ? 'text-electric-lime' : wallet.pnl1d < 0 ? 'text-short' : 'text-gray-400'
@@ -108,7 +108,7 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* 7D PnL */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className={cn(
           'font-mono text-sm mono-nums font-semibold',
           wallet.pnl7d > 0 
@@ -122,7 +122,7 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* 30D PnL */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className={cn(
           'font-mono text-sm mono-nums',
           wallet.pnl30d > 0 ? 'text-electric-lime' : wallet.pnl30d < 0 ? 'text-short' : 'text-gray-400'
@@ -132,10 +132,10 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* 7D Win Rate */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <div className="flex items-center gap-2">
-          <div className="relative w-12 h-12">
-            <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+          <div className="relative w-10 h-10 md:w-12 md:h-12">
+            <svg className="w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
               <circle
                 cx="18"
                 cy="18"
@@ -174,10 +174,10 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* 30D Win Rate */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <div className="flex items-center gap-2">
-          <div className="relative w-12 h-12">
-            <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+          <div className="relative w-10 h-10 md:w-12 md:h-12">
+            <svg className="w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
               <circle
                 cx="18"
                 cy="18"
@@ -216,14 +216,14 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       </td>
 
       {/* 7D Volume */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className="font-mono text-sm mono-nums text-gray-300">
           {formatUSD(wallet.volume7d)}
         </span>
       </td>
 
       {/* 30D Volume */}
-      <td className="px-4 py-3">
+      <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className="font-mono text-sm mono-nums text-gray-300">
           {formatUSD(wallet.volume30d)}
         </span>

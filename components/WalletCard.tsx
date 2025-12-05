@@ -19,6 +19,9 @@ interface WalletCardProps {
 
 export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCardProps) {
   const isError = wallet.error;
+  const net = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
+  const side = net > 0 ? 'Long' : net < 0 ? 'Short' : 'Mixed';
+  const totalExposure = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
 
   return (
     <motion.div
@@ -26,14 +29,14 @@ export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCard
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.03, duration: 0.3 }}
       className={cn(
-        'p-4 rounded-lg border border-electric-lime/20 bg-base-800/50',
+        'p-4 sm:p-5 rounded-lg border border-electric-lime/20 bg-base-800/50',
         'hover:border-electric-lime/40 hover:bg-base-800/70 transition-all',
         'backdrop-blur-sm',
         isError && 'opacity-50'
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <a
           href={`${EXPLORER_URL}/address/${wallet.address}`}
           target="_blank"
@@ -47,6 +50,23 @@ export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCard
           {truncateAddress(wallet.address, 6)}
           <ExternalLink className="w-3.5 h-3.5 opacity-60" />
         </a>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold uppercase tracking-wide border',
+              side === 'Long'
+                ? 'bg-electric-lime/15 text-electric-lime border-electric-lime/40'
+                : side === 'Short'
+                ? 'bg-hyper-violet/15 text-hyper-violet border-hyper-violet/40'
+                : 'bg-gunmetal-700/40 text-gray-300 border-gunmetal-500'
+            )}
+          >
+            {side}
+          </span>
+          <span className="text-xs font-mono text-gray-300">
+            {totalExposure > 0 ? formatUSD(totalExposure) : 'No position'}
+          </span>
+        </div>
       </div>
 
       {/* Metrics Grid */}

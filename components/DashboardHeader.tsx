@@ -34,26 +34,26 @@ export const DashboardHeader = memo(function DashboardHeader({
       transition={{ duration: 0.5 }}
       className="border-b border-gunmetal-700 bg-base-900/80 backdrop-blur-sm"
     >
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-4 sm:px-6 py-4 md:py-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
           <h1 className="text-2xl font-display font-bold text-white tracking-tight">
             Smart-HL Dashboard
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <Link
               href="/twap"
               className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm font-mono font-semibold',
+                'flex items-center justify-center gap-2 px-4 py-2 text-sm font-mono font-semibold min-h-[44px]',
                 'border border-electric-lime/30 rounded transition-all',
                 'text-electric-lime hover:bg-electric-lime/10 hover:border-electric-lime/50',
-                'hover:shadow-neon-green'
+                'hover:shadow-neon-green w-full sm:w-auto'
               )}
             >
               <Clock className="w-4 h-4" />
               TWAP Tracker
             </Link>
             {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-400 font-mono">
+              <div className="flex items-center gap-2 text-sm text-gray-400 font-mono min-h-[44px]">
                 <div className="w-2 h-2 rounded-full bg-electric-lime animate-pulse" />
                 <span>Loading...</span>
               </div>
@@ -64,7 +64,7 @@ export const DashboardHeader = memo(function DashboardHeader({
         {/* Long vs Short Visualization */}
         <div className="space-y-4">
           {/* Polarized Bar Chart */}
-          <div className="relative h-12 bg-gunmetal-800/50 rounded-lg overflow-hidden border border-gunmetal-700">
+          <div className="relative h-10 md:h-12 bg-gunmetal-800/50 rounded-lg overflow-hidden border border-gunmetal-700">
             {/* Long Bar */}
             <motion.div
               initial={{ width: 0 }}
@@ -105,7 +105,7 @@ export const DashboardHeader = memo(function DashboardHeader({
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Total Long */}
             <div className="bg-gunmetal-800/30 rounded-lg p-3 border border-electric-lime/20">
               <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">

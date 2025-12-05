@@ -81,10 +81,10 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto px-4 pb-16 md:px-0 md:pb-0">
         {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-16 md:py-20 px-4">
             <Loader2 className="w-8 h-8 text-electric-lime animate-spin mb-4" />
             <div className="text-sm font-mono text-gray-400 mb-2">
               System Loading... {progress}%
@@ -212,7 +212,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile Card Grid (below md) */}
-            <div className="md:hidden px-4 py-4">
+            <div className="md:hidden px-1.5 sm:px-3 py-4">
               <div className="grid grid-cols-1 gap-4">
                 {wallets.map((wallet, index) => (
                   <WalletCard key={wallet.address} wallet={wallet} index={index} />
