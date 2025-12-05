@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,6 +12,9 @@
   --color-neon-pink: #ff0099;
   --color-long: #00ff88;
   --color-short: #ff3366;
+  --color-electric-lime: #CCFF00;
+  --color-hyper-violet: #8A2BE2;
+  --color-hot-pink: #FF1493;
 }
 
 /* Base styles */
@@ -60,6 +63,18 @@ body {
 
   .text-glow-pink {
     text-shadow: 0 0 10px rgba(255, 0, 153, 0.5), 0 0 20px rgba(255, 0, 153, 0.3);
+  }
+
+  .text-glow-lime {
+    text-shadow: 0 0 10px rgba(204, 255, 0, 0.6), 0 0 20px rgba(204, 255, 0, 0.4);
+  }
+
+  .border-l-long {
+    border-left-color: #00ff88;
+  }
+
+  .border-l-short {
+    border-left-color: #ff3366;
   }
 
   /* Border glow effects */

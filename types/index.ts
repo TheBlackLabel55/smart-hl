@@ -56,3 +56,34 @@ export interface NansenSmartMoneyItem {
     isSmart: boolean;     // Found in Nansen Map
     txHash: string;
   }
+
+  // --- WALLET STATS TYPES (For Dashboard) ---
+  
+  export interface WalletStats {
+    address: string;
+    pnl1d: number;
+    pnl7d: number;
+    pnl30d: number;
+    winRate7d: number;  // Percentage (0-100)
+    winRate30d: number; // Percentage (0-100)
+    volume7d: number;
+    volume30d: number;
+    twap: number;       // Time-Weighted Average Price
+    longPosition: number; // USD value
+    shortPosition: number; // USD value
+    error?: boolean;
+  }
+
+  export interface WalletStatsResponse {
+    success: boolean;
+    data: WalletStats[];
+    progress?: {
+      processed: number;
+      total: number;
+      percentage: number;
+    };
+    error?: string;
+  }
+
+  export type SortField = 'pnl1d' | 'pnl7d' | 'pnl30d' | 'winRate7d' | 'winRate30d' | 'volume7d' | 'volume30d' | 'twap';
+  export type SortDirection = 'asc' | 'desc';

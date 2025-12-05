@@ -2,86 +2,187 @@
 
 /**
  * Main Dashboard Page
- * Smart-Perp V2 - Hyperliquid Smart Money Tracker
+ * Smart-HL - Hyperliquid Smart Money Tracker Dashboard
  */
 
 import { motion } from 'framer-motion';
-import { Header } from '@/components/Header';
-import { FilterPanel } from '@/components/FilterPanel';
-import { LiveFeed } from '@/components/LiveFeed';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import { WalletRow } from '@/components/WalletRow';
+import { WalletCard } from '@/components/WalletCard';
+import { SortableTableHeader } from '@/components/SortableTableHeader';
+import { useSmartWallets } from '@/hooks/useSmartWallets';
+import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const {
+    wallets,
+    isLoading,
+    error,
+    progress,
+    totalLong,
+    totalShort,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useSmartWallets();
+
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      {/* Header */}
-      <Header />
+    <div className="flex flex-col min-h-screen bg-base-900">
+      {/* Dashboard Header */}
+      <DashboardHeader
+        totalLong={totalLong}
+        totalShort={totalShort}
+        isLoading={isLoading}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Filter Panel */}
-        <FilterPanel />
-
-        {/* Live Feed Container */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="flex-1 relative overflow-hidden card-terminal m-4 rounded-lg"
-        >
-          {/* Terminal Header */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-gunmetal-700 bg-base-900/50">
-            {/* Traffic lights */}
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/80" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+      <main className="flex-1 overflow-auto">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-electric-lime animate-spin mb-4" />
+            <div className="text-sm font-mono text-gray-400 mb-2">
+              System Loading... {progress}%
             </div>
-            
-            {/* Terminal title */}
-            <span className="ml-3 text-xs font-mono text-gray-500 tracking-wider">
-              ~/hyperliquid/live-feed
-            </span>
-            
-            {/* Blinking cursor */}
-            <motion.span
-              animate={{ opacity: [1, 0] }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-              className="text-neon-green font-mono"
-            >
-              █
-            </motion.span>
+            <div className="w-64 h-1 bg-gunmetal-700 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+                className="h-full bg-electric-lime"
+              />
+            </div>
           </div>
+        )}
 
-          {/* Live Feed */}
-          <div className="flex-1 h-[calc(100%-40px)]">
-            <LiveFeed />
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <div className="text-red-400 font-mono text-sm mb-2">Error</div>
+            <div className="text-gray-400 text-sm text-center max-w-md">{error}</div>
           </div>
-        </motion.div>
+        )}
+
+        {/* Desktop Table View (md and above) */}
+        {!isLoading && !error && (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <div className="px-6 py-4">
+                <motion.table
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="w-full border-collapse"
+                >
+                  <thead>
+                    <tr className="border-b border-gunmetal-700">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        Wallet
+                      </th>
+                      <SortableTableHeader
+                        field="pnl1d"
+                        label="1D PnL"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="pnl7d"
+                        label="7D PnL"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="pnl30d"
+                        label="30D PnL"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="winRate7d"
+                        label="7D Win Rate"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="winRate30d"
+                        label="30D Win Rate"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="volume7d"
+                        label="7D Volume"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="volume30d"
+                        label="30D Volume"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="twap"
+                        label="TWAP"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wallets.map((wallet, index) => (
+                      <WalletRow key={wallet.address} wallet={wallet} index={index} />
+                    ))}
+                  </tbody>
+                </motion.table>
+              </div>
+            </div>
+
+            {/* Mobile Card Grid (below md) */}
+            <div className="md:hidden px-4 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                {wallets.map((wallet, index) => (
+                  <WalletCard key={wallet.address} wallet={wallet} index={index} />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </main>
 
       {/* Footer Status Bar */}
-      <footer className="border-t border-gunmetal-700 bg-base-900/80 backdrop-blur-sm px-4 py-2">
+      <footer className="border-t border-gunmetal-700 bg-base-900/80 backdrop-blur-sm px-4 py-2 mt-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-xs font-mono text-gray-500">
-            <span>Smart-Perp V2</span>
+            <span>Smart-HL</span>
             <span className="text-gunmetal-600">|</span>
             <span>Hyperliquid</span>
             <span className="text-gunmetal-600">|</span>
-            <span>Nansen Pro</span>
+            <span>{wallets.length} Wallets</span>
           </div>
           
           <div className="flex items-center gap-4 text-xs font-mono">
             <a 
-              href="https://hyperliquid.xyz" 
+              href="https://hypurrscan.io" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-neon-cyan transition-colors"
+              className="text-gray-500 hover:text-electric-lime transition-colors"
             >
-              hyperliquid.xyz
+              hypurrscan.io
             </a>
             <span className="text-gunmetal-600">|</span>
             <span className="text-gray-600">
-              Cache refresh: Every 24h
+              Cache: 5min
             </span>
           </div>
         </div>

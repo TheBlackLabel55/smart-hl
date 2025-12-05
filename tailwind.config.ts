@@ -32,6 +32,10 @@ const config: Config = {
           purple: '#bf00ff',
           orange: '#ff6b00',
         },
+        // Smart-HL Theme Colors
+        'electric-lime': '#CCFF00',
+        'hyper-violet': '#8A2BE2',
+        'hot-pink': '#FF1493',
         // Semantic colors for trading
         long: '#00ff88',
         short: '#ff3366',
@@ -40,8 +44,8 @@ const config: Config = {
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Space Mono', 'Fira Code', 'monospace'],
-        display: ['Unbounded', 'Syncopate', 'Space Grotesk', 'sans-serif'],
-        body: ['Space Grotesk', 'Inter', 'sans-serif'],
+        display: ['Unbounded', 'Syncopate', 'Space Grotesk', 'Rajdhani', 'sans-serif'],
+        body: ['Space Grotesk', 'Rajdhani', 'Inter', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
