@@ -77,6 +77,13 @@ export interface NansenSmartMoneyItem {
   export interface WalletStatsResponse {
     success: boolean;
     data: WalletStats[];
+    metadata?: {
+      totalWallets: number;
+      totalLong: number;
+      totalShort: number;
+      cached?: boolean;
+      timestamp?: number;
+    };
     progress?: {
       processed: number;
       total: number;
