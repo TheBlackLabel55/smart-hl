@@ -15,11 +15,37 @@ import { EXPLORER_URL } from '@/lib/constants';
 interface WalletRowProps {
   wallet: WalletStats;
   index: number;
+  selectedToken?: string | null;
 }
 
-export const WalletRow = memo(function WalletRow({ wallet, index }: WalletRowProps) {
-  const isPositive = wallet.pnl7d > 0;
+export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken }: WalletRowProps) {
   const isError = wallet.error;
+
+  // Determine display side and size based on selectedToken
+  const getDisplayData = () => {
+    if (selectedToken) {
+      // Find position for selected token
+      const position = wallet.positions?.find(p => p.coin === selectedToken);
+      if (position) {
+        return {
+          side: position.side,
+          size: position.sizeUsd,
+        };
+      }
+      return { side: null, size: 0 };
+    } else {
+      // Use aggregate stats
+      const netLong = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
+      const totalSize = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
+      return {
+        side: netLong > 0 ? 'Long' : netLong < 0 ? 'Short' : null,
+        size: totalSize,
+      };
+    }
+  };
+
+  const { side, size } = getDisplayData();
+  const isLong = side === 'Long';
 
   return (
     <motion.tr
@@ -46,6 +72,29 @@ export const WalletRow = memo(function WalletRow({ wallet, index }: WalletRowPro
           {truncateAddress(wallet.address, 4)}
           <ExternalLink className="w-3 h-3 opacity-60" />
         </a>
+      </td>
+
+      {/* Side (Long/Short) */}
+      <td className="px-4 py-3">
+        {side ? (
+          <span className={cn(
+            'px-3 py-1 rounded text-xs font-bold uppercase tracking-wider',
+            isLong 
+              ? 'bg-electric-lime/20 text-electric-lime border border-electric-lime/30' 
+              : 'bg-hyper-violet/20 text-hyper-violet border border-hyper-violet/30'
+          )}>
+            {side}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-500 font-mono">-</span>
+        )}
+      </td>
+
+      {/* Position Size */}
+      <td className="px-4 py-3">
+        <span className="font-mono text-sm mono-nums text-gray-200">
+          {size > 0 ? formatUSD(size) : '-'}
+        </span>
       </td>
 
       {/* 1D PnL */}
@@ -177,13 +226,6 @@ export const WalletRow = memo(function WalletRow({ wallet, index }: WalletRowPro
       <td className="px-4 py-3">
         <span className="font-mono text-sm mono-nums text-gray-300">
           {formatUSD(wallet.volume30d)}
-        </span>
-      </td>
-
-      {/* TWAP */}
-      <td className="px-4 py-3">
-        <span className="font-mono text-sm mono-nums text-gray-400">
-          ${wallet.twap.toFixed(2)}
         </span>
       </td>
     </motion.tr>

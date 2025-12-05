@@ -107,5 +107,5 @@ export interface NansenSmartMoneyItem {
     error?: string;
   }
 
-  export type SortField = 'pnl1d' | 'pnl7d' | 'pnl30d' | 'winRate7d' | 'winRate30d' | 'volume7d' | 'volume30d' | 'twap';
+  export type SortField = 'pnl1d' | 'pnl7d' | 'pnl30d' | 'winRate7d' | 'winRate30d' | 'volume7d' | 'volume30d' | 'side' | 'size';
   export type SortDirection = 'asc' | 'desc';

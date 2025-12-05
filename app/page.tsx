@@ -126,6 +126,20 @@ export default function DashboardPage() {
                         Wallet
                       </th>
                       <SortableTableHeader
+                        field="side"
+                        label="Side"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="size"
+                        label="Position Size"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
                         field="pnl1d"
                         label="1D PnL"
                         currentSort={sortField}
@@ -174,18 +188,16 @@ export default function DashboardPage() {
                         sortDirection={sortDirection}
                         onSort={handleSort}
                       />
-                      <SortableTableHeader
-                        field="twap"
-                        label="TWAP"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
                     </tr>
                   </thead>
                   <tbody>
                     {wallets.map((wallet, index) => (
-                      <WalletRow key={wallet.address} wallet={wallet} index={index} />
+                      <WalletRow 
+                        key={wallet.address} 
+                        wallet={wallet} 
+                        index={index} 
+                        selectedToken={selectedToken}
+                      />
                     ))}
                   </tbody>
                 </motion.table>

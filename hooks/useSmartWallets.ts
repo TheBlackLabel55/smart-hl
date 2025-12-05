@@ -119,15 +119,54 @@ export function useSmartWallets() {
     // Sort wallets
     if (sortField) {
       filtered = [...filtered].sort((a, b) => {
-        const aValue = a[sortField];
-        const bValue = b[sortField];
-
         // Handle error states (put them at the end)
         if (a.error && !b.error) return 1;
         if (!a.error && b.error) return -1;
         if (a.error && b.error) return 0;
 
-        // Compare values
+        // Handle special sort fields: 'side' and 'size'
+        if (sortField === 'side') {
+          const getSideValue = (wallet: WalletStats): number => {
+            if (selectedToken) {
+              // Find position for selected token
+              const position = wallet.positions?.find(p => p.coin === selectedToken);
+              if (!position) return 0; // No position = neutral
+              return position.side === 'Long' ? 1 : -1;
+            } else {
+              // Net direction: Long if longPosition > shortPosition
+              const net = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
+              return net > 0 ? 1 : net < 0 ? -1 : 0;
+            }
+          };
+          const aSide = getSideValue(a);
+          const bSide = getSideValue(b);
+          return sortDirection === 'asc' 
+            ? aSide - bSide 
+            : bSide - aSide;
+        }
+
+        if (sortField === 'size') {
+          const getSizeValue = (wallet: WalletStats): number => {
+            if (selectedToken) {
+              // Find position size for selected token
+              const position = wallet.positions?.find(p => p.coin === selectedToken);
+              return position?.sizeUsd || 0;
+            } else {
+              // Total exposure
+              return (wallet.longPosition || 0) + (wallet.shortPosition || 0);
+            }
+          };
+          const aSize = getSizeValue(a);
+          const bSize = getSizeValue(b);
+          return sortDirection === 'asc' 
+            ? aSize - bSize 
+            : bSize - aSize;
+        }
+
+        // Standard numeric field sorting
+        const aValue = a[sortField];
+        const bValue = b[sortField];
+
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return sortDirection === 'asc' 
             ? aValue - bValue 
