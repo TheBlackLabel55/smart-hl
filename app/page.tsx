@@ -223,7 +223,12 @@ export default function DashboardPage() {
             <div className="md:hidden px-1.5 sm:px-3 py-4">
               <div className="grid grid-cols-1 gap-4">
                 {wallets.map((wallet, index) => (
-                  <WalletCard key={wallet.address} wallet={wallet} index={index} />
+                  <WalletCard
+                    key={wallet.address}
+                    wallet={wallet}
+                    index={index}
+                    selectedToken={selectedToken}
+                  />
                 ))}
           </div>
 

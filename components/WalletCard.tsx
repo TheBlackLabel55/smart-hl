@@ -15,13 +15,33 @@ import { EXPLORER_URL } from '@/lib/constants';
 interface WalletCardProps {
   wallet: WalletStats;
   index: number;
+  selectedToken?: string | null;
 }
 
-export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCardProps) {
+export const WalletCard = memo(function WalletCard({ wallet, index, selectedToken }: WalletCardProps) {
   const isError = wallet.error;
-  const net = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
-  const side = net > 0 ? 'Long' : net < 0 ? 'Short' : 'Mixed';
-  const totalExposure = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
+
+  const getDisplayData = () => {
+    if (selectedToken) {
+      const position = wallet.positions?.find(p => p.coin === selectedToken);
+      if (position) {
+        return {
+          side: position.side,
+          size: position.sizeUsd,
+        };
+      }
+      return { side: null as null, size: 0 };
+    }
+    const netLong = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
+    const totalSize = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
+    return {
+      side: netLong > 0 ? 'Long' as const : netLong < 0 ? 'Short' as const : null,
+      size: totalSize,
+    };
+  };
+
+  const { side, size } = getDisplayData();
+  const totalExposure = size;
 
   return (
     <motion.div
@@ -61,7 +81,7 @@ export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCard
                 : 'bg-gunmetal-700/40 text-gray-300 border-gunmetal-500'
             )}
           >
-            {side}
+            {side ?? 'N/A'}
           </span>
           <span className="text-xs font-mono text-gray-300">
             {totalExposure > 0 ? formatUSD(totalExposure) : 'No position'}
@@ -214,16 +234,6 @@ export const WalletCard = memo(function WalletCard({ wallet, index }: WalletCard
                 {formatUSD(wallet.volume30d)}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* TWAP */}
-        <div className="space-y-2">
-          <div className="text-xs text-gray-400 uppercase tracking-wider">TWAP</div>
-          <div className="pt-1">
-            <span className="font-mono text-xs mono-nums text-gray-300">
-              ${wallet.twap.toFixed(2)}
-            </span>
           </div>
         </div>
       </div>
