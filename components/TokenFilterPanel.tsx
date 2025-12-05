@@ -7,19 +7,27 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, X, Search } from 'lucide-react';
+import { ChevronDown, X, Search } from './icons';
 import { cn } from '@/lib/utils';
 
 interface TokenFilterPanelProps {
   availableTokens: string[];
   selectedToken: string | null;
   onTokenChange: (token: string | null) => void;
+  sizeFilter: 'all' | '10k' | '50k' | '250k' | '1m';
+  onSizeFilterChange: (value: 'all' | '10k' | '50k' | '250k' | '1m') => void;
+  pnlFilter: 'all' | '0' | '10k' | '50k' | '250k';
+  onPnlFilterChange: (value: 'all' | '0' | '10k' | '50k' | '250k') => void;
 }
 
 export function TokenFilterPanel({
   availableTokens,
   selectedToken,
   onTokenChange,
+  sizeFilter,
+  onSizeFilterChange,
+  pnlFilter,
+  onPnlFilterChange,
 }: TokenFilterPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +103,7 @@ export function TokenFilterPanel({
 
   return (
     <div className="px-4 sm:px-6 py-3 border-b border-gunmetal-700 bg-base-800/50">
-      <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs font-mono uppercase tracking-wider text-gray-400">
           Filter by Token:
         </span>
@@ -185,6 +193,46 @@ export function TokenFilterPanel({
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* Size filter */}
+        <div className="relative w-[150px] sm:w-40">
+          <select
+            value={sizeFilter}
+            onChange={(e) => onSizeFilterChange(e.target.value as TokenFilterPanelProps['sizeFilter'])}
+            className={cn(
+              'w-full px-3 py-2 text-sm font-mono min-h-[44px]',
+              'bg-gunmetal-800 border border-gunmetal-600 rounded',
+              'text-white focus:outline-none focus:border-electric-lime',
+              'transition-colors'
+            )}
+          >
+            <option value="all">All Sizes</option>
+            <option value="10k">&gt; $10k size</option>
+            <option value="50k">&gt; $50k size</option>
+            <option value="250k">&gt; $250k size</option>
+            <option value="1m">&gt; $1M size</option>
+          </select>
+        </div>
+
+        {/* PnL filter */}
+        <div className="relative w-[150px] sm:w-40">
+          <select
+            value={pnlFilter}
+            onChange={(e) => onPnlFilterChange(e.target.value as TokenFilterPanelProps['pnlFilter'])}
+            className={cn(
+              'w-full px-3 py-2 text-sm font-mono min-h-[44px]',
+              'bg-gunmetal-800 border border-gunmetal-600 rounded',
+              'text-white focus:outline-none focus:border-electric-lime',
+              'transition-colors'
+            )}
+          >
+            <option value="all">All PnL</option>
+            <option value="0">&gt; $0 (profitable)</option>
+            <option value="10k">&gt; $10k</option>
+            <option value="50k">&gt; $50k</option>
+            <option value="250k">&gt; $250k</option>
+          </select>
         </div>
 
         {selectedToken && (

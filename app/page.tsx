@@ -14,7 +14,7 @@ import { WalletCard } from '@/components/WalletCard';
 import { SortableTableHeader } from '@/components/SortableTableHeader';
 import { useSmartWallets } from '@/hooks/useSmartWallets';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 
 export default function DashboardPage() {
   const {
@@ -32,6 +32,10 @@ export default function DashboardPage() {
     selectedToken,
     setSelectedToken,
     availableTokens,
+    sizeFilter,
+    setSizeFilter,
+    pnlFilter,
+    setPnlFilter,
   } = useSmartWallets();
 
   // Infinite scroll sentinel ref
@@ -77,6 +81,10 @@ export default function DashboardPage() {
           availableTokens={availableTokens}
           selectedToken={selectedToken}
           onTokenChange={setSelectedToken}
+          sizeFilter={sizeFilter}
+          onSizeFilterChange={setSizeFilter}
+          pnlFilter={pnlFilter}
+          onPnlFilterChange={setPnlFilter}
         />
       )}
 
@@ -90,7 +98,7 @@ export default function DashboardPage() {
               System Loading... {progress}%
             </div>
             <div className="w-64 h-1 bg-gunmetal-700 rounded-full overflow-hidden">
-              <motion.div
+        <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.3 }}
@@ -210,22 +218,22 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-
+            
             {/* Mobile Card Grid (below md) */}
             <div className="md:hidden px-1.5 sm:px-3 py-4">
               <div className="grid grid-cols-1 gap-4">
                 {wallets.map((wallet, index) => (
                   <WalletCard key={wallet.address} wallet={wallet} index={index} />
                 ))}
-              </div>
-              
+          </div>
+
               {/* Infinite Scroll Sentinel */}
               {hasMore && (
                 <div ref={sentinelRef} className="h-10 flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 text-electric-lime animate-spin" />
                 </div>
               )}
-            </div>
+          </div>
           </>
         )}
       </main>

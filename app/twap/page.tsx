@@ -7,12 +7,11 @@
 
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
-import { ExternalLink, Clock } from 'lucide-react';
+import { ExternalLink, Clock, Loader2 } from '@/components/icons';
 import Link from 'next/link';
 import { useSmartWallets } from '@/hooks/useSmartWallets';
 import { cn, formatUSD, truncateAddress } from '@/lib/utils';
 import { EXPLORER_URL } from '@/lib/constants';
-import { Loader2 } from 'lucide-react';
 import type { WalletStats, ActiveTwap } from '@/types';
 
 interface TwapRowProps {

@@ -31,6 +31,8 @@ export function useSmartWallets() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const [sizeFilter, setSizeFilter] = useState<'all' | '10k' | '50k' | '250k' | '1m'>('all');
+  const [pnlFilter, setPnlFilter] = useState<'all' | '0' | '10k' | '50k' | '250k'>('all');
 
   // Fetch wallet stats
   const fetchWallets = useCallback(async () => {
@@ -76,7 +78,7 @@ export function useSmartWallets() {
   // Reset display limit when filter changes
   useEffect(() => {
     setDisplayLimit(INITIAL_DISPLAY_LIMIT);
-  }, [selectedToken]);
+  }, [selectedToken, sizeFilter, pnlFilter]);
 
   // Handle column header click for sorting
   const handleSort = useCallback((field: SortField) => {
@@ -106,6 +108,19 @@ export function useSmartWallets() {
     return sortTokensByMarketCap(Array.from(tokenSet));
   }, [state.wallets]);
 
+  const getSizeValue = useCallback((wallet: WalletStats) => {
+    if (selectedToken) {
+      const position = wallet.positions?.find(p => p.coin === selectedToken);
+      return position?.sizeUsd || 0;
+    }
+    return (wallet.longPosition || 0) + (wallet.shortPosition || 0);
+  }, [selectedToken]);
+
+  const getPnlValue = useCallback((wallet: WalletStats) => {
+    // Use 7D PnL as primary filter metric
+    return wallet.pnl7d || 0;
+  }, []);
+
   // Filter, sort, and paginate wallets
   const filteredAndSortedWallets = useMemo(() => {
     let filtered = state.wallets;
@@ -115,6 +130,30 @@ export function useSmartWallets() {
       filtered = filtered.filter(wallet => 
         wallet.positions?.some(pos => pos.coin === selectedToken)
       );
+    }
+
+    // Filter by position size thresholds
+    if (sizeFilter !== 'all') {
+      const thresholds = {
+        '10k': 10_000,
+        '50k': 50_000,
+        '250k': 250_000,
+        '1m': 1_000_000,
+      } as const;
+      const threshold = thresholds[sizeFilter];
+      filtered = filtered.filter(wallet => getSizeValue(wallet) >= threshold);
+    }
+
+    // Filter by PnL thresholds (using 7D PnL)
+    if (pnlFilter !== 'all') {
+      const thresholds = {
+        '0': 0,
+        '10k': 10_000,
+        '50k': 50_000,
+        '250k': 250_000,
+      } as const;
+      const threshold = thresholds[pnlFilter];
+      filtered = filtered.filter(wallet => getPnlValue(wallet) >= threshold);
     }
 
     // Sort wallets
@@ -147,16 +186,6 @@ export function useSmartWallets() {
         }
 
         if (sortField === 'size') {
-          const getSizeValue = (wallet: WalletStats): number => {
-            if (selectedToken) {
-              // Find position size for selected token
-              const position = wallet.positions?.find(p => p.coin === selectedToken);
-              return position?.sizeUsd || 0;
-            } else {
-              // Total exposure
-              return (wallet.longPosition || 0) + (wallet.shortPosition || 0);
-            }
-          };
           const aSize = getSizeValue(a);
           const bSize = getSizeValue(b);
           return sortDirection === 'asc' 
@@ -239,5 +268,9 @@ export function useSmartWallets() {
     selectedToken,
     setSelectedToken,
     availableTokens,
+    sizeFilter,
+    setSizeFilter,
+    pnlFilter,
+    setPnlFilter,
   };
 }

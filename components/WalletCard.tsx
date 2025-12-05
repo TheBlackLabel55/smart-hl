@@ -7,7 +7,7 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from './icons';
 import type { WalletStats } from '@/types';
 import { cn, formatUSD, truncateAddress } from '@/lib/utils';
 import { EXPLORER_URL } from '@/lib/constants';

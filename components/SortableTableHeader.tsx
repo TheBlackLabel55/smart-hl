@@ -6,7 +6,7 @@
  */
 
 import { memo } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown } from './icons';
 import type { SortField, SortDirection } from '@/types';
 import { cn } from '@/lib/utils';
 
