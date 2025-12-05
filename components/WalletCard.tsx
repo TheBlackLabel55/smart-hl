@@ -9,7 +9,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink } from './icons';
 import type { WalletStats } from '@/types';
-import { cn, formatUSD, truncateAddress } from '@/lib/utils';
+import { cn, formatPrice, formatUSD, truncateAddress } from '@/lib/utils';
 import { EXPLORER_URL } from '@/lib/constants';
 
 interface WalletCardProps {
@@ -28,19 +28,28 @@ export const WalletCard = memo(function WalletCard({ wallet, index, selectedToke
         return {
           side: position.side,
           size: position.sizeUsd,
+          entryPrice: position.entryPrice,
+          currentPrice: position.currentPrice,
+          positionPnl: position.pnl,
+          liquidationPrice: position.liquidationPrice,
         };
       }
-      return { side: null as null, size: 0 };
+      return { side: null as null, size: 0, entryPrice: null, currentPrice: null, positionPnl: null, liquidationPrice: null };
     }
     const netLong = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
     const totalSize = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
     return {
       side: netLong > 0 ? 'Long' as const : netLong < 0 ? 'Short' as const : null,
       size: totalSize,
+      entryPrice: null,
+      currentPrice: null,
+      positionPnl: null,
+      liquidationPrice: null,
     };
   };
 
-  const { side, size } = getDisplayData();
+  const { side, size, entryPrice, currentPrice, positionPnl, liquidationPrice } = getDisplayData();
+  const isTokenView = Boolean(selectedToken);
   const totalExposure = size;
 
   return (
@@ -95,15 +104,6 @@ export const WalletCard = memo(function WalletCard({ wallet, index, selectedToke
         <div className="space-y-2">
           <div className="text-xs text-gray-400 uppercase tracking-wider">PnL</div>
           <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">1D:</span>
-              <span className={cn(
-                'font-mono text-xs mono-nums',
-                wallet.pnl1d > 0 ? 'text-electric-lime' : wallet.pnl1d < 0 ? 'text-short' : 'text-gray-400'
-              )}>
-                {formatUSD(wallet.pnl1d)}
-              </span>
-            </div>
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">7D:</span>
               <span className={cn(
@@ -217,26 +217,39 @@ export const WalletCard = memo(function WalletCard({ wallet, index, selectedToke
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Volume Section */}
-        <div className="space-y-2">
-          <div className="text-xs text-gray-400 uppercase tracking-wider">Volume</div>
+      {isTokenView && (
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">7D:</span>
-              <span className="font-mono text-xs mono-nums text-gray-300">
-                {formatUSD(wallet.volume7d)}
-              </span>
+            <div className="text-xs text-gray-400 uppercase tracking-wider">Entry Price</div>
+            <div className="font-mono text-sm text-gray-200">
+              {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
             </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">30D:</span>
-              <span className="font-mono text-xs mono-nums text-gray-300">
-                {formatUSD(wallet.volume30d)}
-              </span>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">Current Price</div>
+            <div className="font-mono text-sm text-gray-200">
+              {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">PnL</div>
+            <div className={cn(
+              'font-mono text-sm',
+              (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
+            )}>
+              {positionPnl != null ? formatUSD(positionPnl) : '-'}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">Liquidation</div>
+            <div className="font-mono text-sm text-gray-200">
+              {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
             </div>
           </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 });

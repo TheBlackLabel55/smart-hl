@@ -9,7 +9,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink } from './icons';
 import type { WalletStats } from '@/types';
-import { cn, formatUSD, truncateAddress } from '@/lib/utils';
+import { cn, formatPrice, formatUSD, truncateAddress } from '@/lib/utils';
 import { EXPLORER_URL } from '@/lib/constants';
 
 interface WalletRowProps {
@@ -24,27 +24,33 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
   // Determine display side and size based on selectedToken
   const getDisplayData = () => {
     if (selectedToken) {
-      // Find position for selected token
       const position = wallet.positions?.find(p => p.coin === selectedToken);
       if (position) {
         return {
           side: position.side,
           size: position.sizeUsd,
+          entryPrice: position.entryPrice,
+          currentPrice: position.currentPrice,
+          positionPnl: position.pnl,
+          liquidationPrice: position.liquidationPrice,
         };
       }
-      return { side: null, size: 0 };
+      return { side: null, size: 0, entryPrice: null, currentPrice: null, positionPnl: null, liquidationPrice: null };
     } else {
-      // Use aggregate stats
       const netLong = (wallet.longPosition || 0) - (wallet.shortPosition || 0);
       const totalSize = (wallet.longPosition || 0) + (wallet.shortPosition || 0);
       return {
         side: netLong > 0 ? 'Long' : netLong < 0 ? 'Short' : null,
         size: totalSize,
+        entryPrice: null,
+        currentPrice: null,
+        positionPnl: null,
+        liquidationPrice: null,
       };
     }
   };
 
-  const { side, size } = getDisplayData();
+  const { side, size, entryPrice, currentPrice, positionPnl, liquidationPrice } = getDisplayData();
   const isLong = side === 'Long';
 
   return (
@@ -94,16 +100,6 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
       <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className="font-mono text-sm mono-nums text-gray-200">
           {size > 0 ? formatUSD(size) : '-'}
-        </span>
-      </td>
-
-      {/* 1D PnL */}
-      <td className="px-3 py-2.5 md:px-4 md:py-3">
-        <span className={cn(
-          'font-mono text-sm mono-nums',
-          wallet.pnl1d > 0 ? 'text-electric-lime' : wallet.pnl1d < 0 ? 'text-short' : 'text-gray-400'
-        )}>
-          {formatUSD(wallet.pnl1d)}
         </span>
       </td>
 
@@ -215,19 +211,44 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
         </div>
       </td>
 
-      {/* 7D Volume */}
-      <td className="px-3 py-2.5 md:px-4 md:py-3">
-        <span className="font-mono text-sm mono-nums text-gray-300">
-          {formatUSD(wallet.volume7d)}
-        </span>
-      </td>
+      {/* Entry Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
+          </span>
+        </td>
+      )}
 
-      {/* 30D Volume */}
-      <td className="px-3 py-2.5 md:px-4 md:py-3">
-        <span className="font-mono text-sm mono-nums text-gray-300">
-          {formatUSD(wallet.volume30d)}
-        </span>
-      </td>
+      {/* Current Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
+          </span>
+        </td>
+      )}
+
+      {/* Position PnL (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className={cn(
+            'font-mono text-sm mono-nums',
+            (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
+          )}>
+            {positionPnl != null ? formatUSD(positionPnl) : '-'}
+          </span>
+        </td>
+      )}
+
+      {/* Liquidation Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
+          </span>
+        </td>
+      )}
     </motion.tr>
   );
 });

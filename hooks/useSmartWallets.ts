@@ -108,6 +108,11 @@ export function useSmartWallets() {
     return sortTokensByMarketCap(Array.from(tokenSet));
   }, [state.wallets]);
 
+  const getSelectedPosition = useCallback((wallet: WalletStats) => {
+    if (!selectedToken) return null;
+    return wallet.positions?.find(pos => pos.coin === selectedToken) || null;
+  }, [selectedToken]);
+
   const getSizeValue = useCallback((wallet: WalletStats) => {
     if (selectedToken) {
       const position = wallet.positions?.find(p => p.coin === selectedToken);
@@ -191,6 +196,36 @@ export function useSmartWallets() {
           return sortDirection === 'asc' 
             ? aSize - bSize 
             : bSize - aSize;
+        }
+
+        if (
+          sortField === 'entryPrice' ||
+          sortField === 'currentPrice' ||
+          sortField === 'positionPnl' ||
+          sortField === 'liquidationPrice'
+        ) {
+          const getPositionValue = (wallet: WalletStats) => {
+            const position = getSelectedPosition(wallet);
+            if (!position) return Number.NEGATIVE_INFINITY;
+            switch (sortField) {
+              case 'entryPrice':
+                return position.entryPrice ?? Number.NEGATIVE_INFINITY;
+              case 'currentPrice':
+                return position.currentPrice ?? Number.NEGATIVE_INFINITY;
+              case 'positionPnl':
+                return position.pnl ?? Number.NEGATIVE_INFINITY;
+              case 'liquidationPrice':
+                return position.liquidationPrice ?? Number.NEGATIVE_INFINITY;
+              default:
+                return Number.NEGATIVE_INFINITY;
+            }
+          };
+
+          const aValue = getPositionValue(a);
+          const bValue = getPositionValue(b);
+          return sortDirection === 'asc'
+            ? aValue - bValue
+            : bValue - aValue;
         }
 
         // Standard numeric field sorting

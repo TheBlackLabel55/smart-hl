@@ -59,10 +59,14 @@ export interface NansenSmartMoneyItem {
 
   // --- WALLET STATS TYPES (For Dashboard) ---
   
-  export interface TokenPosition {
+export interface TokenPosition {
     coin: string;
     sizeUsd: number;
     side: 'Long' | 'Short';
+    entryPrice?: number;
+    currentPrice?: number;
+    pnl?: number;
+    liquidationPrice?: number | null;
   }
 
   export interface ActiveTwap {
@@ -107,5 +111,15 @@ export interface NansenSmartMoneyItem {
     error?: string;
   }
 
-  export type SortField = 'pnl1d' | 'pnl7d' | 'pnl30d' | 'winRate7d' | 'winRate30d' | 'volume7d' | 'volume30d' | 'side' | 'size';
+  export type SortField =
+    | 'pnl7d'
+    | 'pnl30d'
+    | 'winRate7d'
+    | 'winRate30d'
+    | 'side'
+    | 'size'
+    | 'entryPrice'
+    | 'currentPrice'
+    | 'positionPnl'
+    | 'liquidationPrice';
   export type SortDirection = 'asc' | 'desc';

@@ -24,6 +24,7 @@ interface HyperliquidAssetPosition {
     entryPx: string;
     positionValue: string; // USD value
     unrealizedPnl: string;
+    liquidationPx?: string;
   };
 }
 
@@ -169,11 +170,27 @@ function calculateWinRate(fills: HyperliquidFill[], periodMs: number): number {
  * Map Hyperliquid positions to our TokenPosition format
  */
 function mapPositions(assetPositions: HyperliquidAssetPosition[]) {
-  const positions = assetPositions.map(pos => ({
-    coin: pos.position.coin,
-    sizeUsd: parseFloat(pos.position.positionValue),
-    side: parseFloat(pos.position.szi) > 0 ? 'Long' as const : 'Short' as const,
-  }));
+  const positions = assetPositions.map(pos => {
+    const sizeSigned = parseFloat(pos.position.szi);
+    const positionValue = parseFloat(pos.position.positionValue);
+    const absSize = Math.abs(sizeSigned);
+    const entryPrice = parseFloat(pos.position.entryPx);
+    const currentPrice = absSize > 0 ? positionValue / absSize : 0;
+    const pnl = parseFloat(pos.position.unrealizedPnl || '0');
+    const liquidationPrice = pos.position.liquidationPx
+      ? parseFloat(pos.position.liquidationPx)
+      : null;
+
+    return {
+      coin: pos.position.coin,
+      sizeUsd: positionValue,
+      side: sizeSigned > 0 ? 'Long' as const : 'Short' as const,
+      entryPrice,
+      currentPrice,
+      pnl,
+      liquidationPrice,
+    };
+  });
   
   const longPosition = positions
     .filter(p => p.side === 'Long')
@@ -225,10 +242,18 @@ function generateMockStats(address: string): WalletStats {
     const tokenIndex = (seedNum + i) % tokens.length;
     const positionSize = (seedNum % 500000) + 10000;
     const side = (seedNum + i) % 2 === 0 ? 'Long' : 'Short';
+    const entryPrice = 100 + ((seedNum % 5000) / 100);
+    const currentPrice = entryPrice * (1 + ((seedNum % 2000) - 1000) / 50000);
+    const pnl = positionSize * ((currentPrice - entryPrice) / entryPrice);
+    const liquidationPrice = entryPrice * (side === 'Long' ? 0.7 : 1.3);
     positions.push({
       coin: tokens[tokenIndex],
       sizeUsd: positionSize,
       side: side as 'Long' | 'Short',
+      entryPrice,
+      currentPrice,
+      pnl,
+      liquidationPrice,
     });
   }
 

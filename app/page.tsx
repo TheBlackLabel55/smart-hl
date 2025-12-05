@@ -148,13 +148,6 @@ export default function DashboardPage() {
                         onSort={handleSort}
                       />
                       <SortableTableHeader
-                        field="pnl1d"
-                        label="1D PnL"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
-                      <SortableTableHeader
                         field="pnl7d"
                         label="7D PnL"
                         currentSort={sortField}
@@ -182,20 +175,38 @@ export default function DashboardPage() {
                         sortDirection={sortDirection}
                         onSort={handleSort}
                       />
-                      <SortableTableHeader
-                        field="volume7d"
-                        label="7D Volume"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
-                      <SortableTableHeader
-                        field="volume30d"
-                        label="30D Volume"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
+                      {selectedToken && (
+                        <>
+                          <SortableTableHeader
+                            field="entryPrice"
+                            label="Entry Price"
+                            currentSort={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHeader
+                            field="currentPrice"
+                            label="Current Price"
+                            currentSort={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHeader
+                            field="positionPnl"
+                            label="PnL"
+                            currentSort={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHeader
+                            field="liquidationPrice"
+                            label="Liquidation"
+                            currentSort={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          />
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
