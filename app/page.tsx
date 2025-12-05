@@ -147,34 +147,6 @@ export default function DashboardPage() {
                         sortDirection={sortDirection}
                         onSort={handleSort}
                       />
-                      <SortableTableHeader
-                        field="pnl7d"
-                        label="7D PnL"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
-                      <SortableTableHeader
-                        field="pnl30d"
-                        label="30D PnL"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
-                      <SortableTableHeader
-                        field="winRate7d"
-                        label="7D Win Rate"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
-                      <SortableTableHeader
-                        field="winRate30d"
-                        label="30D Win Rate"
-                        currentSort={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                      />
                       {selectedToken && (
                         <>
                           <SortableTableHeader
@@ -207,6 +179,34 @@ export default function DashboardPage() {
                           />
                         </>
                       )}
+                      <SortableTableHeader
+                        field="pnl7d"
+                        label="7D PnL"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="pnl30d"
+                        label="30D PnL"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="winRate7d"
+                        label="7D Win Rate"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortableTableHeader
+                        field="winRate30d"
+                        label="30D Win Rate"
+                        currentSort={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
                     </tr>
                   </thead>
                   <tbody>

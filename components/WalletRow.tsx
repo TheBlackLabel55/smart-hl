@@ -103,6 +103,45 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
         </span>
       </td>
 
+      {/* Entry Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
+          </span>
+        </td>
+      )}
+
+      {/* Current Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
+          </span>
+        </td>
+      )}
+
+      {/* Position PnL (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className={cn(
+            'font-mono text-sm mono-nums',
+            (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
+          )}>
+            {positionPnl != null ? formatUSD(positionPnl) : '-'}
+          </span>
+        </td>
+      )}
+
+      {/* Liquidation Price (token view only) */}
+      {selectedToken && (
+        <td className="px-3 py-2.5 md:px-4 md:py-3">
+          <span className="font-mono text-sm mono-nums text-gray-200">
+            {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
+          </span>
+        </td>
+      )}
+
       {/* 7D PnL */}
       <td className="px-3 py-2.5 md:px-4 md:py-3">
         <span className={cn(
@@ -210,45 +249,6 @@ export const WalletRow = memo(function WalletRow({ wallet, index, selectedToken 
           </div>
         </div>
       </td>
-
-      {/* Entry Price (token view only) */}
-      {selectedToken && (
-        <td className="px-3 py-2.5 md:px-4 md:py-3">
-          <span className="font-mono text-sm mono-nums text-gray-200">
-            {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
-          </span>
-        </td>
-      )}
-
-      {/* Current Price (token view only) */}
-      {selectedToken && (
-        <td className="px-3 py-2.5 md:px-4 md:py-3">
-          <span className="font-mono text-sm mono-nums text-gray-200">
-            {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
-          </span>
-        </td>
-      )}
-
-      {/* Position PnL (token view only) */}
-      {selectedToken && (
-        <td className="px-3 py-2.5 md:px-4 md:py-3">
-          <span className={cn(
-            'font-mono text-sm mono-nums',
-            (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
-          )}>
-            {positionPnl != null ? formatUSD(positionPnl) : '-'}
-          </span>
-        </td>
-      )}
-
-      {/* Liquidation Price (token view only) */}
-      {selectedToken && (
-        <td className="px-3 py-2.5 md:px-4 md:py-3">
-          <span className="font-mono text-sm mono-nums text-gray-200">
-            {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
-          </span>
-        </td>
-      )}
     </motion.tr>
   );
 });

@@ -98,158 +98,154 @@ export const WalletCard = memo(function WalletCard({ wallet, index, selectedToke
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* PnL Section */}
-        <div className="space-y-2">
-          <div className="text-xs text-gray-400 uppercase tracking-wider">PnL</div>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">7D:</span>
-              <span className={cn(
-                'font-mono text-xs mono-nums font-semibold',
-                wallet.pnl7d > 0 
-                  ? 'text-electric-lime' 
-                  : wallet.pnl7d < 0 
-                  ? 'text-short' 
-                  : 'text-gray-400'
-              )}>
-                {formatUSD(wallet.pnl7d)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">30D:</span>
-              <span className={cn(
-                'font-mono text-xs mono-nums',
-                wallet.pnl30d > 0 ? 'text-electric-lime' : wallet.pnl30d < 0 ? 'text-short' : 'text-gray-400'
-              )}>
-                {formatUSD(wallet.pnl30d)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Win Rate Section */}
-        <div className="space-y-2">
-          <div className="text-xs text-gray-400 uppercase tracking-wider">Win Rate</div>
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">7D:</span>
-              <div className="flex items-center gap-1.5">
-                <div className="relative w-8 h-8">
-                  <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-gunmetal-700"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeDasharray={`${wallet.winRate7d} ${100 - wallet.winRate7d}`}
-                      className={cn(
-                        wallet.winRate7d >= 60 ? 'text-electric-lime' : 
-                        wallet.winRate7d >= 40 ? 'text-neon-cyan' : 
-                        'text-short'
-                      )}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className={cn(
-                    'absolute inset-0 flex items-center justify-center text-[8px] font-mono font-semibold',
-                    wallet.winRate7d >= 60 ? 'text-electric-lime' : 
-                    wallet.winRate7d >= 40 ? 'text-neon-cyan' : 
-                    'text-short'
-                  )}>
-                    {Math.round(wallet.winRate7d)}%
-                  </span>
-                </div>
+      {/* Metrics Layout */}
+      <div className="space-y-4">
+        {isTokenView && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <div className="text-xs text-gray-400 uppercase tracking-wider">Entry Price</div>
+              <div className="font-mono text-sm text-gray-200">
+                {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
               </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-500">30D:</span>
-              <div className="flex items-center gap-1.5">
-                <div className="relative w-8 h-8">
-                  <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-gunmetal-700"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeDasharray={`${wallet.winRate30d} ${100 - wallet.winRate30d}`}
-                      className={cn(
-                        wallet.winRate30d >= 60 ? 'text-electric-lime' : 
-                        wallet.winRate30d >= 40 ? 'text-neon-cyan' : 
-                        'text-short'
-                      )}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className={cn(
-                    'absolute inset-0 flex items-center justify-center text-[8px] font-mono font-semibold',
-                    wallet.winRate30d >= 60 ? 'text-electric-lime' : 
-                    wallet.winRate30d >= 40 ? 'text-neon-cyan' : 
-                    'text-short'
-                  )}>
-                    {Math.round(wallet.winRate30d)}%
-                  </span>
-                </div>
+            <div className="space-y-1">
+              <div className="text-xs text-gray-400 uppercase tracking-wider">Current Price</div>
+              <div className="font-mono text-sm text-gray-200">
+                {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-gray-400 uppercase tracking-wider">PnL</div>
+              <div className={cn(
+                'font-mono text-sm',
+                (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
+              )}>
+                {positionPnl != null ? formatUSD(positionPnl) : '-'}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-gray-400 uppercase tracking-wider">Liquidation</div>
+              <div className="font-mono text-sm text-gray-200">
+                {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* 7D PnL */}
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">7D PnL</div>
+            <div className={cn(
+              'font-mono text-sm',
+              wallet.pnl7d > 0 
+                ? 'text-electric-lime' 
+                : wallet.pnl7d < 0 
+                ? 'text-short' 
+                : 'text-gray-400'
+            )}>
+              {formatUSD(wallet.pnl7d)}
+            </div>
+          </div>
+
+          {/* 30D PnL */}
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">30D PnL</div>
+            <div className={cn(
+              'font-mono text-sm',
+              wallet.pnl30d > 0 ? 'text-electric-lime' : wallet.pnl30d < 0 ? 'text-short' : 'text-gray-400'
+            )}>
+              {formatUSD(wallet.pnl30d)}
+            </div>
+          </div>
+
+          {/* 7D Win Rate */}
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">7D Win Rate</div>
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-8 h-8">
+                <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-gunmetal-700"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeDasharray={`${wallet.winRate7d} ${100 - wallet.winRate7d}`}
+                    className={cn(
+                      wallet.winRate7d >= 60 ? 'text-electric-lime' : 
+                      wallet.winRate7d >= 40 ? 'text-neon-cyan' : 
+                      'text-short'
+                    )}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className={cn(
+                  'absolute inset-0 flex items-center justify-center text-[8px] font-mono font-semibold',
+                  wallet.winRate7d >= 60 ? 'text-electric-lime' : 
+                  wallet.winRate7d >= 40 ? 'text-neon-cyan' : 
+                  'text-short'
+                )}>
+                  {Math.round(wallet.winRate7d)}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 30D Win Rate */}
+          <div className="space-y-1">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">30D Win Rate</div>
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-8 h-8">
+                <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-gunmetal-700"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeDasharray={`${wallet.winRate30d} ${100 - wallet.winRate30d}`}
+                    className={cn(
+                      wallet.winRate30d >= 60 ? 'text-electric-lime' : 
+                      wallet.winRate30d >= 40 ? 'text-neon-cyan' : 
+                      'text-short'
+                    )}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className={cn(
+                  'absolute inset-0 flex items-center justify-center text-[8px] font-mono font-semibold',
+                  wallet.winRate30d >= 60 ? 'text-electric-lime' : 
+                  wallet.winRate30d >= 40 ? 'text-neon-cyan' : 
+                  'text-short'
+                )}>
+                  {Math.round(wallet.winRate30d)}%
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {isTokenView && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wider">Entry Price</div>
-            <div className="font-mono text-sm text-gray-200">
-              {entryPrice != null ? `$${formatPrice(entryPrice)}` : '-'}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wider">Current Price</div>
-            <div className="font-mono text-sm text-gray-200">
-              {currentPrice != null ? `$${formatPrice(currentPrice)}` : '-'}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wider">PnL</div>
-            <div className={cn(
-              'font-mono text-sm',
-              (positionPnl || 0) > 0 ? 'text-electric-lime' : (positionPnl || 0) < 0 ? 'text-short' : 'text-gray-400'
-            )}>
-              {positionPnl != null ? formatUSD(positionPnl) : '-'}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wider">Liquidation</div>
-            <div className="font-mono text-sm text-gray-200">
-              {liquidationPrice != null ? `$${formatPrice(liquidationPrice)}` : '-'}
-            </div>
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 });
