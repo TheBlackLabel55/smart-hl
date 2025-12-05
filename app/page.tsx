@@ -6,7 +6,9 @@
  */
 
 import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import { TokenFilterPanel } from '@/components/TokenFilterPanel';
 import { WalletRow } from '@/components/WalletRow';
 import { WalletCard } from '@/components/WalletCard';
 import { SortableTableHeader } from '@/components/SortableTableHeader';
@@ -25,7 +27,40 @@ export default function DashboardPage() {
     sortField,
     sortDirection,
     handleSort,
+    hasMore,
+    loadMore,
+    selectedToken,
+    setSelectedToken,
+    availableTokens,
   } = useSmartWallets();
+
+  // Infinite scroll sentinel ref
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (isLoading || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
+      }
+    };
+  }, [isLoading, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col min-h-screen bg-base-900">
@@ -35,6 +70,15 @@ export default function DashboardPage() {
         totalShort={totalShort}
         isLoading={isLoading}
       />
+
+      {/* Token Filter Panel */}
+      {!isLoading && !error && availableTokens.length > 0 && (
+        <TokenFilterPanel
+          availableTokens={availableTokens}
+          selectedToken={selectedToken}
+          onTokenChange={setSelectedToken}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
@@ -145,6 +189,13 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </motion.table>
+                
+                {/* Infinite Scroll Sentinel */}
+                {hasMore && (
+                  <div ref={sentinelRef} className="h-10 flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 text-electric-lime animate-spin" />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -155,6 +206,13 @@ export default function DashboardPage() {
                   <WalletCard key={wallet.address} wallet={wallet} index={index} />
                 ))}
               </div>
+              
+              {/* Infinite Scroll Sentinel */}
+              {hasMore && (
+                <div ref={sentinelRef} className="h-10 flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 text-electric-lime animate-spin" />
+                </div>
+              )}
             </div>
           </>
         )}

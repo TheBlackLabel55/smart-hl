@@ -2,7 +2,7 @@
 
 /**
  * useSmartWallets Hook
- * Fetches wallet statistics and handles client-side sorting
+ * Fetches wallet statistics and handles client-side sorting, filtering, and pagination
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -17,6 +17,9 @@ interface UseSmartWalletsState {
   totalShort: number;
 }
 
+const INITIAL_DISPLAY_LIMIT = 20; // Show 20 wallets initially
+const LOAD_MORE_INCREMENT = 20; // Load 20 more at a time
+
 export function useSmartWallets() {
   const [state, setState] = useState<UseSmartWalletsState>({
     wallets: [],
@@ -29,6 +32,8 @@ export function useSmartWallets() {
 
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT);
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
 
   // Fetch wallet stats
   const fetchWallets = useCallback(async () => {
@@ -73,6 +78,11 @@ export function useSmartWallets() {
     fetchWallets();
   }, [fetchWallets]);
 
+  // Reset display limit when filter changes
+  useEffect(() => {
+    setDisplayLimit(INITIAL_DISPLAY_LIMIT);
+  }, [selectedToken]);
+
   // Handle column header click for sorting
   const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
@@ -85,36 +95,83 @@ export function useSmartWallets() {
     }
   }, [sortField]);
 
-  // Sort wallets based on current sort settings
-  const sortedWallets = useMemo(() => {
-    if (!sortField) return state.wallets;
+  // Load more wallets (infinite scroll)
+  const loadMore = useCallback(() => {
+    setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
+  }, []);
 
-    return [...state.wallets].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-
-      // Handle error states (put them at the end)
-      if (a.error && !b.error) return 1;
-      if (!a.error && b.error) return -1;
-      if (a.error && b.error) return 0;
-
-      // Compare values
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' 
-          ? aValue - bValue 
-          : bValue - aValue;
-      }
-
-      return 0;
+  // Derive available tokens from all wallets
+  const availableTokens = useMemo(() => {
+    const tokenSet = new Set<string>();
+    state.wallets.forEach(wallet => {
+      wallet.positions?.forEach(pos => {
+        tokenSet.add(pos.coin);
+      });
     });
-  }, [state.wallets, sortField, sortDirection]);
+    return Array.from(tokenSet).sort();
+  }, [state.wallets]);
+
+  // Filter, sort, and paginate wallets
+  const filteredAndSortedWallets = useMemo(() => {
+    let filtered = state.wallets;
+
+    // Filter by selected token (if set)
+    if (selectedToken) {
+      filtered = filtered.filter(wallet => 
+        wallet.positions?.some(pos => pos.coin === selectedToken)
+      );
+    }
+
+    // Sort wallets
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        const aValue = a[sortField];
+        const bValue = b[sortField];
+
+        // Handle error states (put them at the end)
+        if (a.error && !b.error) return 1;
+        if (!a.error && b.error) return -1;
+        if (a.error && b.error) return 0;
+
+        // Compare values
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'asc' 
+            ? aValue - bValue 
+            : bValue - aValue;
+        }
+
+        return 0;
+      });
+    }
+
+    // Slice by display limit (pagination)
+    return filtered.slice(0, displayLimit);
+  }, [state.wallets, selectedToken, sortField, sortDirection, displayLimit]);
+
+  // Check if there are more wallets to load
+  const hasMore = useMemo(() => {
+    let filtered = state.wallets;
+    if (selectedToken) {
+      filtered = filtered.filter(wallet => 
+        wallet.positions?.some(pos => pos.coin === selectedToken)
+      );
+    }
+    return filtered.length > displayLimit;
+  }, [state.wallets, selectedToken, displayLimit]);
 
   return {
     ...state,
-    wallets: sortedWallets,
+    wallets: filteredAndSortedWallets,
     sortField,
     sortDirection,
     handleSort,
     refetch: fetchWallets,
+    // New properties
+    displayLimit,
+    loadMore,
+    hasMore,
+    selectedToken,
+    setSelectedToken,
+    availableTokens,
   };
 }

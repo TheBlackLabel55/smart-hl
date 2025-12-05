@@ -10,4 +10,5 @@ export { DashboardHeader } from './DashboardHeader';
 export { WalletRow } from './WalletRow';
 export { WalletCard } from './WalletCard';
 export { SortableTableHeader } from './SortableTableHeader';
+export { TokenFilterPanel } from './TokenFilterPanel';
 

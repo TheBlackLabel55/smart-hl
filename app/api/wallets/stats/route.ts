@@ -37,6 +37,41 @@ function generateMockStats(address: string): WalletStats {
   const longPosition = (seedNum % 2000000) + 50000;
   const shortPosition = (seedNum % 1500000) + 30000;
 
+  // Common tokens for mock data
+  const tokens = ['BTC', 'ETH', 'SOL', 'ARB', 'MATIC', 'AVAX', 'LINK', 'UNI'];
+  
+  // Generate positions (1-4 positions per wallet)
+  const numPositions = 1 + (seedNum % 4);
+  const positions = [];
+  for (let i = 0; i < numPositions; i++) {
+    const tokenIndex = (seedNum + i) % tokens.length;
+    const positionSize = (seedNum % 500000) + 10000;
+    const side = (seedNum + i) % 2 === 0 ? 'Long' : 'Short';
+    positions.push({
+      coin: tokens[tokenIndex],
+      sizeUsd: positionSize,
+      side: side as 'Long' | 'Short',
+    });
+  }
+
+  // Generate active TWAPs (0-2 TWAPs per wallet, ~30% chance)
+  const activeTwaps = [];
+  if ((seedNum % 10) < 3) {
+    const numTwaps = 1 + (seedNum % 2);
+    for (let i = 0; i < numTwaps; i++) {
+      const tokenIndex = (seedNum + i + 5) % tokens.length;
+      const twapSize = (seedNum % 300000) + 5000;
+      const side = (seedNum + i + 3) % 2 === 0 ? 'Long' : 'Short';
+      const minutesRemaining = 5 + (seedNum % 55); // 5-60 minutes
+      activeTwaps.push({
+        coin: tokens[tokenIndex],
+        sizeUsd: twapSize,
+        side: side as 'Long' | 'Short',
+        minutesRemaining,
+      });
+    }
+  }
+
   return {
     address: address.toLowerCase(),
     pnl1d,
@@ -49,6 +84,8 @@ function generateMockStats(address: string): WalletStats {
     twap,
     longPosition,
     shortPosition,
+    positions,
+    activeTwaps,
     error: false,
   };
 }
@@ -99,6 +136,8 @@ async function fetchWalletStats(address: string): Promise<WalletStats> {
       twap: data.twap || 0,
       longPosition: data.long_position || data.longPosition || 0,
       shortPosition: data.short_position || data.shortPosition || 0,
+      positions: data.positions || [],
+      activeTwaps: data.active_twaps || data.activeTwaps || [],
       error: false,
     };
   } catch (error) {
@@ -117,6 +156,8 @@ async function fetchWalletStats(address: string): Promise<WalletStats> {
       twap: 0,
       longPosition: 0,
       shortPosition: 0,
+      positions: [],
+      activeTwaps: [],
       error: true,
     };
   }

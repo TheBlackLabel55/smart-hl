@@ -59,6 +59,19 @@ export interface NansenSmartMoneyItem {
 
   // --- WALLET STATS TYPES (For Dashboard) ---
   
+  export interface TokenPosition {
+    coin: string;
+    sizeUsd: number;
+    side: 'Long' | 'Short';
+  }
+
+  export interface ActiveTwap {
+    coin: string;
+    sizeUsd: number;
+    side: 'Long' | 'Short';
+    minutesRemaining: number;
+  }
+  
   export interface WalletStats {
     address: string;
     pnl1d: number;
@@ -71,6 +84,8 @@ export interface NansenSmartMoneyItem {
     twap: number;       // Time-Weighted Average Price
     longPosition: number; // USD value
     shortPosition: number; // USD value
+    positions: TokenPosition[]; // Current positions per token
+    activeTwaps: ActiveTwap[]; // Active TWAP orders
     error?: boolean;
   }
 

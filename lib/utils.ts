@@ -14,18 +14,22 @@ export function cn(...inputs: ClassValue[]): string {
 
 /**
  * Format USD value with appropriate suffix (K, M, B)
+ * Handles negative numbers correctly (e.g., -$49.9k instead of $-49975.00)
  */
 export function formatUSD(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  
+  if (absValue >= 1_000_000_000) {
+    return `${sign}$${(absValue / 1_000_000_000).toFixed(2)}B`;
   }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (absValue >= 1_000_000) {
+    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
   }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
+  if (absValue >= 1_000) {
+    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
   }
-  return `$${value.toFixed(2)}`;
+  return `${sign}$${absValue.toFixed(2)}`;
 }
 
 /**
