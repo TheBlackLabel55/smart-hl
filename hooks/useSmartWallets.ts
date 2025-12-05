@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { WalletStats, SortField, SortDirection } from '@/types';
+import { sortTokensByMarketCap } from '@/lib/constants';
 
 interface UseSmartWalletsState {
   wallets: WalletStats[];
@@ -94,7 +95,7 @@ export function useSmartWallets() {
     setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
   }, []);
 
-  // Derive available tokens from all wallets
+  // Derive available tokens from all wallets, sorted by market cap (highest first)
   const availableTokens = useMemo(() => {
     const tokenSet = new Set<string>();
     state.wallets.forEach(wallet => {
@@ -102,7 +103,7 @@ export function useSmartWallets() {
         tokenSet.add(pos.coin);
       });
     });
-    return Array.from(tokenSet).sort();
+    return sortTokensByMarketCap(Array.from(tokenSet));
   }, [state.wallets]);
 
   // Filter, sort, and paginate wallets
